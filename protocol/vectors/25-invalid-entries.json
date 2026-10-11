@@ -1,0 +1,80 @@
+{
+ "name": "25-invalid-entries",
+ "description": "Malformed entries are rejected one by one; valid entries of the same batch still apply.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "x1",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "yesterday",
+      "payload": {}
+     },
+     {
+      "changeId": "x2",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa"
+     },
+     {
+      "changeId": "x3",
+      "type": "bad type",
+      "key": "k",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "payload": {}
+     },
+     {
+      "changeId": "x4",
+      "type": "label",
+      "key": "label:a",
+      "op": "rename",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "payload": {}
+     },
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:ok",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "ok"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "changeId": "x1",
+     "status": "invalid"
+    },
+    {
+     "changeId": "x2",
+     "status": "invalid"
+    },
+    {
+     "changeId": "x3",
+     "status": "invalid"
+    },
+    {
+     "changeId": "x4",
+     "status": "invalid"
+    },
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  }
+ ]
+}

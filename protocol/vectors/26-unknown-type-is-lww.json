@@ -1,0 +1,92 @@
+{
+ "name": "26-unknown-type-is-lww",
+ "description": "Types not in types.json are stored and merged last-writer-wins (forward compatibility).",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "futureThing",
+      "key": "f:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "a": 1,
+       "b": 1
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "futureThing",
+      "key": "f:1",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "a": 2,
+       "b": 1
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "futureThing",
+      "key": "f:1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "a": 1,
+       "b": 2
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 3,
+      "payload": {
+       "a": 1,
+       "b": 2
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

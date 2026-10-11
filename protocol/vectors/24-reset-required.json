@@ -1,0 +1,67 @@
+{
+ "name": "24-reset-required",
+ "description": "A cursor older than the tombstone GC horizon must re-read everything.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "a"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "gcHorizon": 5
+  },
+  {
+   "pull": {
+    "cursor": 3
+   },
+   "expect": {
+    "resetRequired": true,
+    "changes": []
+   }
+  },
+  {
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "resetRequired": false,
+    "changes": [
+     {
+      "key": "label:a"
+     }
+    ]
+   }
+  },
+  {
+   "pull": {
+    "cursor": 6
+   },
+   "expect": {
+    "resetRequired": false,
+    "changes": []
+   }
+  }
+ ]
+}

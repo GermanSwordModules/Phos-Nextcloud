@@ -1,0 +1,100 @@
+{
+ "name": "21-pull-paging",
+ "description": "Pull pages with limit/hasMore; the cursor is the rev of the last record returned.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "a"
+      }
+     },
+     {
+      "changeId": "c002",
+      "type": "label",
+      "key": "label:b",
+      "op": "upsert",
+      "hlc": "1791200000001-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "b"
+      }
+     },
+     {
+      "changeId": "c003",
+      "type": "label",
+      "key": "label:c",
+      "op": "upsert",
+      "hlc": "1791200000002-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "c"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    },
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    },
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 3
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0,
+    "limit": 2
+   },
+   "expect": {
+    "cursor": 2,
+    "hasMore": true,
+    "changes": [
+     {
+      "key": "label:a"
+     },
+     {
+      "key": "label:b"
+     }
+    ]
+   }
+  },
+  {
+   "pull": {
+    "cursor": 2,
+    "limit": 2
+   },
+   "expect": {
+    "cursor": 3,
+    "hasMore": false,
+    "changes": [
+     {
+      "key": "label:c"
+     }
+    ]
+   }
+  }
+ ]
+}

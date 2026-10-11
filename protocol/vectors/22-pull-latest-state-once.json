@@ -1,0 +1,109 @@
+{
+ "name": "22-pull-latest-state-once",
+ "description": "A record written several times appears once, in its latest state, at its latest rev.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "a",
+       "color": 1
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "label",
+      "key": "label:b",
+      "op": "upsert",
+      "hlc": "1791200000001-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "b"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000002-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "name": "a",
+       "color": 2
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 3
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "cursor": 3,
+    "changes": [
+     {
+      "key": "label:b",
+      "rev": 2
+     },
+     {
+      "key": "label:a",
+      "rev": 3,
+      "payload": {
+       "name": "a",
+       "color": 2
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

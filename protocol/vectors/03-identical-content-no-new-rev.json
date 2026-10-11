@@ -1,0 +1,71 @@
+{
+ "name": "03-identical-content-no-new-rev",
+ "description": "Pushing what the server already has creates no new rev (no echo churn), even with a stale baseRev.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:Studium",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "Studium",
+       "color": -16776961
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "label",
+      "key": "label:Studium",
+      "op": "upsert",
+      "hlc": "1791200005000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "color": -16776961,
+       "name": "Studium"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1,
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa"
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 1
+   },
+   "expect": {
+    "changes": [],
+    "cursor": 1
+   }
+  }
+ ]
+}

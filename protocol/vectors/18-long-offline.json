@@ -1,0 +1,172 @@
+{
+ "name": "18-long-offline",
+ "description": "Device A works offline for two weeks while B keeps editing. A's edits carry old wall-clock stamps; text still merges by content, lww data from A loses to B's newer state.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nEnde"
+      }
+     },
+     {
+      "changeId": "c002",
+      "type": "readingPosition",
+      "key": "pos:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "entryKey": "/1"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    },
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791804800000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nEnde\nNachtrag B1"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 3
+     }
+    }
+   ],
+   "now": 1791804800000
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c004",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791804800005-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 3,
+      "payload": {
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nEnde\nNachtrag B2"
+      }
+     },
+     {
+      "changeId": "c005",
+      "type": "readingPosition",
+      "key": "pos:1",
+      "op": "upsert",
+      "hlc": "1791804800005-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 2,
+      "payload": {
+       "entryKey": "/9"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 4
+     }
+    },
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 5
+     }
+    }
+   ],
+   "now": 1791804800000
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c006",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791203600000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "text": "Johannes 3,16\nGott liebt\ndie Welt\nso sehr\nEnde"
+      }
+     },
+     {
+      "changeId": "c007",
+      "type": "readingPosition",
+      "key": "pos:1",
+      "op": "upsert",
+      "hlc": "1791203600000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 2,
+      "payload": {
+       "entryKey": "/2"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "merged",
+     "record": {
+      "rev": 6,
+      "hlc": "1791804800005-0000-bbbbbbbbbbbbbbbb",
+      "payload": {
+       "text": "Johannes 3,16\nGott liebt\ndie Welt\nso sehr\nEnde\nNachtrag B2"
+      }
+     }
+    },
+    {
+     "status": "superseded",
+     "record": {
+      "rev": 5,
+      "payload": {
+       "entryKey": "/9"
+      }
+     }
+    }
+   ],
+   "now": 1792409600000
+  }
+ ]
+}

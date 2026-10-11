@@ -1,0 +1,61 @@
+{
+ "name": "19-clock-skew-clamped",
+ "description": "A device whose clock runs a day ahead gets its stamp clamped to server time, so it cannot win every later comparison.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "setting",
+      "key": "setting:Display.FontSize",
+      "op": "upsert",
+      "hlc": "1791286400000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "value": 18
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1,
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa"
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "setting",
+      "key": "setting:Display.FontSize",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "value": 14
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2,
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,53 @@
+{
+ "name": "28-empty-object-preserved",
+ "description": "Empty JSON objects stay objects (never become arrays) through storage and pull.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "planProgress",
+      "key": "plan:x",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "checks": {},
+       "doneDays": []
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1,
+      "payload": {
+       "checks": {},
+       "doneDays": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "changes": [
+     {
+      "payload": {
+       "checks": {},
+       "doneDays": []
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

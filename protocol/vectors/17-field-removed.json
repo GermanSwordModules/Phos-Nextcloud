@@ -1,0 +1,122 @@
+{
+ "name": "17-field-removed",
+ "description": "A field removed by one side and unchanged by the other disappears from the merge result.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": [],
+       "entryKey": "/Cover"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "B",
+       "labelNames": [],
+       "entryKey": "/Cover"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": []
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "merged",
+     "record": {
+      "rev": 3,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "B",
+       "labelNames": []
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

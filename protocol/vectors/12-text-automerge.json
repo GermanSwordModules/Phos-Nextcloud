@@ -1,0 +1,92 @@
+{
+ "name": "12-text-automerge",
+ "description": "A text field edited on different lines by two devices merges automatically.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nEnde"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16 (LUT)\nGott liebt\ndie Welt\nso sehr\nEnde"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200003000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nAmen"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "merged",
+     "record": {
+      "rev": 3,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16 (LUT)\nGott liebt\ndie Welt\nso sehr\nAmen"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

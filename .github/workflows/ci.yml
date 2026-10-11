@@ -1,0 +1,33 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer
+      - run: composer install --no-interaction --no-progress
+      - run: find lib appinfo -name '*.php' -print0 | xargs -0 -n1 php -l
+      - run: vendor/bin/phpunit -c tests/phpunit.xml
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Nextcloud with the app mounted
+        run: |
+          docker run -d --name nc -p 127.0.0.1:8090:80 \
+            -v "$GITHUB_WORKSPACE":/var/www/html/custom_apps/phos \
+            -e SQLITE_DATABASE=nc -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD=phos-dev-pw \
+            -e "NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1" nextcloud:stable
+          until docker exec -u www-data nc php occ status 2>/dev/null | grep -q 'installed: true'; do sleep 3; done
+          docker exec -u www-data nc php occ app:enable phos
+      - run: python3 tests/integration/run_vectors.py http://127.0.0.1:8090 admin phos-dev-pw
+      - run: python3 tests/integration/concurrency.py http://127.0.0.1:8090 admin phos-dev-pw

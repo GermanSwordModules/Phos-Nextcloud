@@ -1,0 +1,108 @@
+{
+ "name": "27-plan-progress-union",
+ "description": "Reading-plan days ticked on two devices are all kept.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "planProgress",
+      "key": "plan:MCheyne",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "startDate": "2026-01-01",
+       "doneDays": [
+        1
+       ],
+       "checks": {}
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "planProgress",
+      "key": "plan:MCheyne",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "startDate": "2026-01-01",
+       "doneDays": [
+        1,
+        2
+       ],
+       "checks": {}
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "planProgress",
+      "key": "plan:MCheyne",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "startDate": "2026-01-01",
+       "doneDays": [
+        1,
+        3
+       ],
+       "checks": {}
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "merged",
+     "record": {
+      "rev": 3,
+      "payload": {
+       "startDate": "2026-01-01",
+       "doneDays": [
+        1,
+        2,
+        3
+       ],
+       "checks": {}
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

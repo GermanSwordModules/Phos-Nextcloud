@@ -1,0 +1,47 @@
+{
+ "name": "31-users-isolated",
+ "description": "Another user sees nothing of alice's personal collection.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "a"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "changes": []
+   }
+  },
+  {
+   "uid": "bob",
+   "conflicts": true,
+   "expect": []
+  }
+ ]
+}

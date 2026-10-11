@@ -1,0 +1,93 @@
+{
+ "name": "01-create-and-pull",
+ "description": "A new record is accepted with rev 1 and comes back from a pull exactly once.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": []
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1,
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "deleted": false,
+      "device": "aaaaaaaaaaaaaaaa",
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "cursor": 1,
+    "hasMore": false,
+    "resetRequired": false,
+    "changes": [
+     {
+      "type": "bookmark",
+      "key": "bm:1",
+      "rev": 1,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": []
+      }
+     }
+    ]
+   }
+  },
+  {
+   "pull": {
+    "cursor": 1
+   },
+   "expect": {
+    "cursor": 1,
+    "hasMore": false,
+    "changes": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>phos</id>
+    <name>Phos</name>
+    <summary>Sync server for the Phos Bible study app</summary>
+    <description><![CDATA[Keeps bookmarks, notes, reading plans, study projects and SWORD modules
+in sync between Phos installations (desktop, mobile, web), with offline-safe
+merging and per-device "local only" data.]]></description>
+    <version>0.1.0</version>
+    <licence>agpl</licence>
+    <author>Jens</author>
+    <namespace>Phos</namespace>
+    <category>office</category>
+    <bugs>https://github.com/GermanSwordModules/Phos-Nextcloud/issues</bugs>
+    <repository>https://github.com/GermanSwordModules/Phos-Nextcloud</repository>
+    <dependencies>
+        <php min-version="8.1"/>
+        <nextcloud min-version="30" max-version="34"/>
+    </dependencies>
+    <background-jobs>
+        <job>OCA\Phos\BackgroundJob\TombstoneGc</job>
+    </background-jobs>
+</info>

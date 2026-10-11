@@ -1,0 +1,118 @@
+{
+ "name": "13-text-conflict",
+ "description": "Overlapping text edits: the server keeps its version for the whole record and stores the pushed one as a conflict. Nothing is lost.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16\nGott liebt\ndie Welt\nso sehr\nEnde"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16\nGott liebt\ndie ganze Welt\nso sehr\nEnde"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c003",
+      "type": "note",
+      "key": "note:1",
+      "op": "upsert",
+      "hlc": "1791200003000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "title": "Pad (A)",
+       "text": "Joh 3,16\nGott liebt\ndie Menschen\nso sehr\nEnde"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "conflict",
+     "conflictId": 1,
+     "record": {
+      "rev": 2,
+      "payload": {
+       "title": "Pad",
+       "text": "Joh 3,16\nGott liebt\ndie ganze Welt\nso sehr\nEnde"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "get": {
+    "type": "note",
+    "key": "note:1"
+   },
+   "expect": {
+    "rev": 2
+   }
+  },
+  {
+   "conflicts": true,
+   "expect": [
+    {
+     "id": 1,
+     "type": "note",
+     "key": "note:1",
+     "device": "aaaaaaaaaaaaaaaa",
+     "hlc": "1791200003000-0000-aaaaaaaaaaaaaaaa",
+     "payload": {
+      "title": "Pad (A)",
+      "text": "Joh 3,16\nGott liebt\ndie Menschen\nso sehr\nEnde"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "name": "20-delete-unknown",
+ "description": "Deleting a record the server never saw stores a tombstone.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "bookmark",
+      "key": "bm:gone",
+      "op": "delete",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1,
+      "deleted": true,
+      "payload": null
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "bm:gone",
+      "deleted": true,
+      "payload": null
+     }
+    ]
+   }
+  }
+ ]
+}

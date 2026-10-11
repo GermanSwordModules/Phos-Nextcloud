@@ -1,0 +1,62 @@
+{
+ "name": "06-lww-older-superseded",
+ "description": "lww type: a stale write with a lower hlc is superseded; the server keeps its record and returns it.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "readingPosition",
+      "key": "pos:x",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "entryKey": "/7"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "readingPosition",
+      "key": "pos:x",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "entryKey": "/1"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "superseded",
+     "record": {
+      "rev": 1,
+      "payload": {
+       "entryKey": "/7"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

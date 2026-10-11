@@ -1,0 +1,60 @@
+{
+ "name": "23-pull-types-filter",
+ "description": "Pull can be restricted to some types (e.g. a device with modules switched off).",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "label",
+      "key": "label:a",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "a"
+      }
+     },
+     {
+      "changeId": "c002",
+      "type": "module",
+      "key": "module:GerNeUe",
+      "op": "upsert",
+      "hlc": "1791200000001-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "GerNeUe",
+       "version": "1.2"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted"
+    },
+    {
+     "status": "accepted"
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 0,
+    "types": [
+     "label"
+    ]
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "label:a"
+     }
+    ]
+   }
+  }
+ ]
+}

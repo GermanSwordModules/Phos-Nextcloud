@@ -1,0 +1,74 @@
+{
+ "name": "05-lww-newer-wins",
+ "description": "lww type, concurrent writers: the higher hlc wins regardless of arrival order.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "readingPosition",
+      "key": "pos:epub:luther",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "entryKey": "/1",
+       "scroll": 10
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "readingPosition",
+      "key": "pos:epub:luther",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "entryKey": "/7",
+       "scroll": 0
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2,
+      "hlc": "1791200002000-0000-bbbbbbbbbbbbbbbb"
+     }
+    }
+   ]
+  },
+  {
+   "get": {
+    "type": "readingPosition",
+    "key": "pos:epub:luther"
+   },
+   "expect": {
+    "payload": {
+     "entryKey": "/7",
+     "scroll": 0
+    }
+   }
+  }
+ ]
+}

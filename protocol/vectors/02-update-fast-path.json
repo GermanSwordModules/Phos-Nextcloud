@@ -1,0 +1,96 @@
+{
+ "name": "02-update-fast-path",
+ "description": "An edit based on the current rev is stored as sent.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c001",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "",
+       "labelNames": []
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "c002",
+      "type": "bookmark",
+      "key": "bm:1",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "Gott liebt die Welt",
+       "labelNames": []
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2,
+      "payload": {
+       "id": "6A168692-F30E62E0",
+       "kind": "verse",
+       "module": "GerNeUe",
+       "bookOsis": "John",
+       "chap": 3,
+       "vStart": 16,
+       "vEnd": 16,
+       "noteMd": "Gott liebt die Welt",
+       "labelNames": []
+      }
+     }
+    }
+   ]
+  },
+  {
+   "get": {
+    "type": "bookmark",
+    "key": "bm:1"
+   },
+   "expect": {
+    "rev": 2,
+    "hlc": "1791200001000-0000-aaaaaaaaaaaaaaaa"
+   }
+  }
+ ]
+}

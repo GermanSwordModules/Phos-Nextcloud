@@ -1,0 +1,24 @@
+{
+	"name": "germanswordmodules/phos-nextcloud",
+	"description": "Nextcloud sync server for the Phos Bible study app",
+	"license": "AGPL-3.0-or-later",
+	"autoload": {
+		"psr-4": { "OCA\\Phos\\": "lib/" }
+	},
+	"autoload-dev": {
+		"psr-4": { "OCA\\Phos\\Tests\\": "tests/php/" }
+	},
+	"require": {
+		"php": ">=8.1"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^11.5"
+	},
+	"config": {
+		"optimize-autoloader": true,
+		"platform": { "php": "8.2" }
+	},
+	"scripts": {
+		"test": "phpunit -c tests/phpunit.xml"
+	}
+}
