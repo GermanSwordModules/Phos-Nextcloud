@@ -9,7 +9,7 @@ import sys, os, uuid, threading, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_vectors as rv  # noqa: E402  (reuses call/ensure_user; argv shared)
 
-uid, pw = "conc-" + uuid.uuid4().hex[:6], "Conc-pw-123456"
+uid, pw = "conc-" + uuid.uuid4().hex[:6], "Conc-pw-" + uuid.uuid4().hex
 rv.ensure_user(uid, pw)
 # First login provisions files/address books; do it once, not 24 times in parallel.
 rv.call("GET", "/apps/phos/api/v1/status", uid, pw)

@@ -8,7 +8,7 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -20,14 +20,22 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Start Nextcloud with the app mounted
         run: |
           docker run -d --name nc -p 127.0.0.1:8090:80 \
             -v "$GITHUB_WORKSPACE":/var/www/html/custom_apps/phos \
             -e SQLITE_DATABASE=nc -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD=phos-dev-pw \
             -e "NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1" nextcloud:stable
-          until docker exec -u www-data nc php occ status 2>/dev/null | grep -q 'installed: true'; do sleep 3; done
+          timeout 300 sh -c 'until docker exec -u www-data nc php occ status 2>/dev/null | grep -q "installed: true"; do sleep 3; done'
           docker exec -u www-data nc php occ app:enable phos
+          # "installed" comes before the entrypoint has finished (trusted domains,
+          # apache start): wait until the app's API really answers.
+          timeout 120 sh -c 'until curl -sf -u admin:phos-dev-pw -H "OCS-APIRequest: true" -H "Accept: application/json" http://127.0.0.1:8090/ocs/v2.php/apps/phos/api/v1/status >/dev/null; do sleep 2; done'
       - run: python3 tests/integration/run_vectors.py http://127.0.0.1:8090 admin phos-dev-pw
       - run: python3 tests/integration/concurrency.py http://127.0.0.1:8090 admin phos-dev-pw
+      - name: Server logs
+        if: failure()
+        run: |
+          docker logs nc 2>&1 | tail -50
+          docker exec nc sh -c 'tail -20 /var/www/html/data/nextcloud.log' || true

@@ -29,17 +29,27 @@ def call(method, path, user, pw, body=None, ocs="v2"):
     req.add_header("Authorization", "Basic " + base64.b64encode(f"{user}:{pw}".encode()).decode())
     try:
         with urllib.request.urlopen(req) as r:
-            return r.status, json.loads(r.read())["ocs"]["data"]
+            raw = r.read()
+            try:
+                return r.status, json.loads(raw)["ocs"]["data"]
+            except (ValueError, KeyError):
+                raise AssertionError(f"{method} {path}: not an OCS JSON answer: {raw[:300]!r}")
     except urllib.error.HTTPError as e:
         raw = e.read()
         try:
             return e.code, json.loads(raw)["ocs"]["data"]
         except Exception:
-            return e.code, raw.decode(errors="replace")
+            return e.code, raw.decode(errors="replace")[:500]
+    except (urllib.error.URLError, ConnectionError) as e:
+        raise AssertionError(f"{method} {path}: server not reachable ({e})")
 
 
 def ensure_user(uid, pw):
-    st, data = call("POST", "/cloud/users", ADMIN, ADMIN_PW, {"userid": uid, "password": pw}, ocs="v1")
+    st, data = call("POST", "/cloud/users", ADMIN, ADMIN_PW, {"userid": uid, "password": pw})
+    # 400 with "User already exists" is fine on reruns; anything else is a setup problem
+    # (password policy, provisioning disabled, …) and must not surface as a vector failure.
+    if st != 200 and "exists" not in json.dumps(data):
+        raise AssertionError(f"creating test user {uid} failed: HTTP {st} {data}")
     return st
 
 
@@ -84,10 +94,10 @@ def run(path, run_id):
     for i, step in enumerate(v["steps"]):
         name = step.get("uid", "alice")
         uid = f"vt{run_id}-{v['name'][:2]}-{name}"
-        pw = "Vector-pw-" + run_id
         if uid not in users:
-            ensure_user(uid, pw)
-            users[uid] = pw
+            users[uid] = "Vector-pw-" + uuid.uuid4().hex
+            ensure_user(uid, users[uid])
+        pw = users[uid]
         where = f"{v['name']} step {i}"
         if "push" in step:
             changes = []

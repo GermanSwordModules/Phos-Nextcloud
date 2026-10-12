@@ -28,6 +28,10 @@ case "$1" in
     podman exec -u 0 -w /var/www/html/custom_apps/phos -e COMPOSER_ALLOW_SUPERUSER=1 -e COMPOSER_HOME=/tmp/composer $NAME \
       sh -c '[ -f composer.phar ] || curl -sSLo composer.phar https://getcomposer.org/download/latest-stable/composer.phar; php composer.phar install -q --no-interaction'
     podman exec -u www-data $NAME php occ app:enable phos
+    # "installed" is reported before apache is up; wait for a real API answer.
+    until curl -sf -u admin:phos-dev-pw -H 'OCS-APIRequest: true' -H 'Accept: application/json' \
+        http://127.0.0.1:$PORT/ocs/v2.php/apps/phos/api/v1/status >/dev/null; do sleep 2; done
+    echo "ready: http://127.0.0.1:$PORT"
     ;;
   down)  podman stop $NAME ;;
   reset) podman rm -f $NAME; podman volume rm -f $NAME-data ;;
