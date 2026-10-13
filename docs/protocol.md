@@ -219,6 +219,17 @@ Because merging happens on the server at push time, a device can stay offline
 for any length of time: its edits carry the rev they were based on, and the
 server merges them against whatever happened meanwhile.
 
+## 8a. Files
+
+Large content is not a record payload. A *file set* (SWORD module, e-book
+folder, a deck's media) travels as a manifest record
+`{"files":[{"p":"<path>","s":<size>,"h":"<md5>"}], "total":…, …}`; the files
+live in the user's Nextcloud Files below `Phos/<area>/<set>/<p>` and are moved
+with plain WebDAV (chunked upload for big files). Receivers fetch what differs
+from their copy. A record whose payload would exceed the limit is stored as a
+file below `Phos/.records/<type>/` and sent as `{"$file": "<path>", "size":
+…, "md5": …}`; receivers fetch and substitute it before applying.
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

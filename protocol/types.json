@@ -111,6 +111,12 @@
       "text": [
         "text"
       ]
+    },
+    "presAssets": {
+      "policy": "lww"
+    },
+    "moduleKey": {
+      "policy": "lww"
     }
   }
 }
