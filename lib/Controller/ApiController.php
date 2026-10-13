@@ -14,6 +14,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
+use OCP\IUserManager;
 use OCP\IUserSession;
 
 /** OCS endpoints of sync protocol v2 (docs/protocol.md §7). */
@@ -27,6 +28,7 @@ class ApiController extends OCSController {
 		private DeviceStore $devices,
 		private TypeRegistry $types,
 		private Clock $clock,
+		private IUserManager $users,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -119,6 +121,10 @@ class ApiController extends OCSController {
 		$typeList = $types === '' ? null : array_values(array_filter(array_map('trim', explode(',', $types))));
 		$only = $collections === '' ? null : array_values(array_filter(array_map('trim', explode(',', $collections))));
 		$res = $this->sync->pull($this->uid(), $cursor, $limit, $typeList, $only);
+		foreach ($res['collections'] as &$c) {
+			$c['ownerName'] = $this->users->getDisplayName($c['owner']) ?? $c['owner'];
+		}
+		unset($c);
 		if (DeviceStore::isDeviceId($device)) {
 			$this->touchQuietly($device, $res['cursor']);
 		}
