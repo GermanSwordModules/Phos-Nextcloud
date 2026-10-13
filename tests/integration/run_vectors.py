@@ -84,6 +84,20 @@ def needs_unit_suite(v):
     return any("now" in s or "gcHorizon" in s for s in v["steps"]) or v["name"].startswith("19-")
 
 
+NAMES = ("alice", "bob", "carol", "dave")
+
+
+def subst(x, alias):
+    """vector names -> real ones (users, personal and shared collection ids)"""
+    if isinstance(x, dict):
+        return {k: subst(v, alias) for k, v in x.items()}
+    if isinstance(x, list):
+        return [subst(v, alias) for v in x]
+    if isinstance(x, str) and x in alias:
+        return alias[x]
+    return x
+
+
 def run(path, run_id):
     v = json.load(open(path))
     if needs_unit_suite(v):
@@ -91,14 +105,58 @@ def run(path, run_id):
     users = {}
     off = None
     last_conflict = None
-    for i, step in enumerate(v["steps"]):
-        name = step.get("uid", "alice")
-        uid = f"vt{run_id}-{v['name'][:2]}-{name}"
-        if uid not in users:
-            users[uid] = "Vector-pw-" + uuid.uuid4().hex
-            ensure_user(uid, users[uid])
+    alias = {}
+    for n in NAMES:
+        uid = f"vt{run_id}-{v['name'][:2]}-{n}"
+        users[uid] = "Vector-pw-" + uuid.uuid4().hex
+        ensure_user(uid, users[uid])
+        alias[n] = uid
+        st, data = call("GET", "/apps/phos/api/v1/collections", uid, users[uid])
+        alias["personal-" + n] = [c for c in data["collections"] if c["kind"] == "personal"][0]["id"]
+    for i, step0 in enumerate(v["steps"]):
+        name = step0.get("uid", "alice")
+        uid = alias[name]
         pw = users[uid]
+        step = {k: (subst(val, alias) if k not in ("uid",) else val) for k, val in step0.items()}
         where = f"{v['name']} step {i}"
+        if "createCollection" in step:
+            st, data = call("POST", "/apps/phos/api/v1/collections", uid, pw, step["createCollection"])
+            assert st == 200, f"{where}: HTTP {st} {data}"
+            want = step0.get("expect", {}).get("id")
+            if want:
+                alias[want] = data["id"]
+            continue
+        if "userGroups" in step0:
+            for n, groups in step0["userGroups"].items():
+                for g in groups:
+                    gid = f"vt{run_id}-{g}"
+                    call("POST", "/cloud/groups", ADMIN, ADMIN_PW, {"groupid": gid})
+                    call("POST", f"/cloud/users/{alias[n]}/groups", ADMIN, ADMIN_PW, {"groupid": gid})
+                    alias[g] = gid
+            continue
+        manage = None
+        if "addMember" in step:
+            m = subst(step0["addMember"], alias)
+            manage = ("POST", f"/apps/phos/api/v1/collections/{m['collection']}/members", {"type": m["type"], "id": m["id"], "perm": m["perm"]})
+        elif "removeMember" in step:
+            m = subst(step0["removeMember"], alias)
+            manage = ("DELETE", f"/apps/phos/api/v1/collections/{m['collection']}/members/{m['type']}/{m['id']}", None)
+        elif "deleteCollection" in step:
+            manage = ("DELETE", f"/apps/phos/api/v1/collections/{subst(step0['deleteCollection'], alias)['collection']}", None)
+        elif "members" in step:
+            manage = ("GET", f"/apps/phos/api/v1/collections/{subst(step0['members'], alias)['collection']}/members", None)
+        if manage:
+            st, data = call(manage[0], manage[1], uid, pw, manage[2])
+            if st == 403:
+                actual = {"error": "forbidden"}
+            elif "members" in step:
+                actual = data["members"]
+            else:
+                assert st == 200, f"{where}: HTTP {st} {data}"
+                actual = {"ok": True}
+            if "expect" in step:
+                match(subst(step0["expect"], alias), actual, where, off or 0)
+            continue
         if "push" in step:
             changes = []
             for c in step["push"]["changes"]:
@@ -115,9 +173,13 @@ def run(path, run_id):
                 if "conflictId" in r:
                     last_conflict = r["conflictId"]
             if off is None:
-                for r in res:
+                exp = step0.get("expect") or []
+                for idx, r in enumerate(res):
                     if "record" in r and r["record"]:
-                        off = r["record"]["rev"] - 1
+                        want = 1
+                        if idx < len(exp) and isinstance(exp[idx], dict):
+                            want = (exp[idx].get("record") or {}).get("rev", 1)
+                        off = r["record"]["rev"] - want
                         break
             actual = res
         elif "pull" in step:
@@ -128,6 +190,8 @@ def run(path, run_id):
             q = f"?cursor={cur}&limit={p.get('limit', 500)}"
             if "types" in p:
                 q += "&types=" + ",".join(p["types"])
+            if "collections" in p:
+                q += "&collections=" + ",".join(p["collections"])
             st, actual = call("GET", "/apps/phos/api/v1/changes" + q, uid, pw)
             assert st == 200, f"{where}: HTTP {st} {actual}"
         elif "get" in step:

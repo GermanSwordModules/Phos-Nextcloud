@@ -1,0 +1,92 @@
+{
+ "name": "43-share-revoke-and-groups",
+ "description": "Membership through a group counts; removing it takes the collection out of the member's list (the client then drops its copies).",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Gemeinde"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "userGroups": {
+    "bob": [
+     "kirchenvorstand"
+    ]
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "group",
+    "id": "kirchenvorstand",
+    "perm": "write"
+   }
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "collections": [
+     {
+      "id": "personal-bob"
+     },
+     {
+      "id": "shared-1",
+      "perm": "write"
+     }
+    ]
+   }
+  },
+  {
+   "removeMember": {
+    "collection": "shared-1",
+    "type": "group",
+    "id": "kirchenvorstand"
+   }
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "collections": [
+     {
+      "id": "personal-bob"
+     }
+    ]
+   }
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "s001",
+      "type": "label",
+      "key": "label:x",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "name": "x"
+      },
+      "collection": "shared-1"
+     }
+    ]
+   },
+   "uid": "bob",
+   "expect": [
+    {
+     "status": "forbidden"
+    }
+   ]
+  }
+ ]
+}

@@ -15,6 +15,31 @@ interface RecordStore {
 	/** @return list<string> collections the user may write */
 	public function writableCollections(string $uid): array;
 
+	/**
+	 * Every collection the user can read, with what they may do there.
+	 * since = rev when access was granted (0 for own collections).
+	 * @return list<array{id:string,name:?string,owner:string,kind:string,perm:string,since:int}>
+	 */
+	public function collections(string $uid): array;
+
+	/** @return array{id:string,name:?string,owner:string,kind:string}|null */
+	public function getCollection(string $id): ?array;
+
+	public function createCollection(string $uid, string $name): string;
+
+	public function renameCollection(string $id, string $name): void;
+
+	/** Removes the collection with its records, history, conflicts and members. */
+	public function deleteCollection(string $id): void;
+
+	/** @return list<array{ptype:string,pid:string,perm:string,since:int}> */
+	public function members(string $collection): array;
+
+	/** Adds or changes a member; a new member gets a fresh since-rev. */
+	public function setMember(string $collection, string $ptype, string $pid, string $perm): void;
+
+	public function removeMember(string $collection, string $ptype, string $pid): void;
+
 	public function find(string $collection, string $type, string $key): ?Record;
 
 	/** The version stored with exactly this rev, if history still has it. */

@@ -1,0 +1,147 @@
+{
+ "name": "42-share-write-and-move",
+ "description": "A writer edits shared records; moving a record from the personal collection leaves a tombstone there.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Hauskreis"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob",
+    "perm": "write"
+   }
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "s001",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2,
+      "collection": "personal-alice"
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "s002",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200000001-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      },
+      "collection": "shared-1",
+      "moveFrom": "personal-alice"
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 3,
+      "collection": "shared-1"
+     }
+    }
+   ]
+  },
+  {
+   "pull": {
+    "cursor": 2
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "bm:b1",
+      "collection": "shared-1",
+      "deleted": false
+     },
+     {
+      "key": "bm:b1",
+      "collection": "personal-alice",
+      "deleted": true
+     }
+    ]
+   }
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "s003",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 3,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten – Amen",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      },
+      "collection": "shared-1"
+     }
+    ]
+   },
+   "uid": "bob",
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 5
+     }
+    }
+   ]
+  }
+ ]
+}

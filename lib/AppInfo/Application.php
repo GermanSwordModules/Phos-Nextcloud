@@ -6,6 +6,7 @@ namespace OCA\Phos\AppInfo;
 
 use OCA\Phos\Db\DbRecordStore;
 use OCA\Phos\Sync\Clock;
+use OCA\Phos\Sync\CollectionService;
 use OCA\Phos\Sync\RecordStore;
 use OCA\Phos\Sync\SyncService;
 use OCA\Phos\Sync\TypeRegistry;
@@ -28,6 +29,8 @@ class Application extends App implements IBootstrap {
 		$context->registerServiceAlias(RecordStore::class, DbRecordStore::class);
 		$context->registerService(SyncService::class, fn (ContainerInterface $c) => new SyncService(
 			$c->get(RecordStore::class), $c->get(TypeRegistry::class), $c->get(Clock::class)));
+		$context->registerService(CollectionService::class, fn (ContainerInterface $c) => new CollectionService(
+			$c->get(RecordStore::class)));
 	}
 
 	public function boot(IBootContext $context): void {

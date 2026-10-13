@@ -111,12 +111,14 @@ class ApiController extends OCSController {
 	 * @param int<1, 1000> $limit
 	 */
 	#[NoAdminRequired]
-	public function changes(int $cursor = 0, int $limit = 500, string $types = '', string $device = ''): DataResponse {
+	public function changes(int $cursor = 0, int $limit = 500, string $types = '', string $device = '',
+		string $collections = ''): DataResponse {
 		if ($cursor < 0) {
 			return self::bad('cursor must be >= 0');
 		}
 		$typeList = $types === '' ? null : array_values(array_filter(array_map('trim', explode(',', $types))));
-		$res = $this->sync->pull($this->uid(), $cursor, $limit, $typeList);
+		$only = $collections === '' ? null : array_values(array_filter(array_map('trim', explode(',', $collections))));
+		$res = $this->sync->pull($this->uid(), $cursor, $limit, $typeList, $only);
 		if (DeviceStore::isDeviceId($device)) {
 			$this->touchQuietly($device, $res['cursor']);
 		}

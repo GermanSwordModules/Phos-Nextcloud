@@ -50,13 +50,22 @@ class SyncService {
 		}
 
 		$collection = $c['collection'] ?? null;
+		$type = $c['type'];
+		$key = $c['key'];
 		if ($collection === null || $collection === '') {
 			$collection = $this->store->personalCollection($uid);
 		} elseif (!in_array($collection, $this->store->writableCollections($uid), true)) {
-			return ['changeId' => $changeId, 'status' => 'forbidden', 'error' => 'collection not writable'];
+			// read-only (or no) access: hand back what is there, so the client
+			// can undo the local edit
+			$res = ['changeId' => $changeId, 'status' => 'forbidden', 'error' => 'collection not writable'];
+			if (in_array($collection, $this->store->readableCollections($uid), true)) {
+				$cur = $this->store->find($collection, $type, $key);
+				if ($cur !== null) {
+					$res['record'] = $cur->toArray();
+				}
+			}
+			return $res;
 		}
-		$type = $c['type'];
-		$key = $c['key'];
 
 		$done = $this->store->findChange($uid, $changeId);
 		if ($done !== null) {
@@ -80,6 +89,11 @@ class SyncService {
 				continue;
 			}
 			$this->store->logChange($uid, $changeId, $collection, $type, $key, $res['status'], $res['conflictId'] ?? null);
+			$from = $c['moveFrom'] ?? null;
+			if (is_string($from) && $from !== '' && $from !== $collection
+				&& in_array($res['status'], ['accepted', 'merged'], true)) {
+				$this->tombstone($uid, $device, $from, $type, $key, $hlc);
+			}
 			return ['changeId' => $changeId] + $res;
 		}
 		return ['changeId' => $changeId, 'status' => 'invalid', 'error' => 'record busy, retry later'];
@@ -121,6 +135,25 @@ class SyncService {
 		}
 	}
 
+	/** The other half of a move: the record leaves its old collection. */
+	private function tombstone(string $uid, string $device, string $collection, string $type, string $key, string $hlc): void {
+		if (!in_array($collection, $this->store->writableCollections($uid), true)) {
+			return;
+		}
+		for ($attempt = 0; $attempt < self::RETRIES; $attempt++) {
+			$old = $this->store->find($collection, $type, $key);
+			if ($old === null || $old->deleted) {
+				return;
+			}
+			try {
+				$this->store->write(new Record($collection, $type, $key, 0, Hlc::max($hlc, $old->hlc), $device, true, null),
+					$old->rev, $uid);
+				return;
+			} catch (ConcurrentWriteException) {
+			}
+		}
+	}
+
 	private function validate(array $c): ?string {
 		foreach (['changeId' => 64, 'type' => 64, 'key' => 255] as $f => $max) {
 			if (!is_string($c[$f] ?? null) || $c[$f] === '' || strlen($c[$f]) > $max) {
@@ -136,6 +169,9 @@ class SyncService {
 		if (!is_string($c['hlc'] ?? null) || !Hlc::isValid($c['hlc'])) {
 			return 'hlc malformed';
 		}
+		if (isset($c['moveFrom']) && !is_string($c['moveFrom'])) {
+			return 'moveFrom must be a collection id';
+		}
 		if (isset($c['baseRev']) && (!is_int($c['baseRev']) || $c['baseRev'] < 0)) {
 			return 'baseRev must be a non-negative integer';
 		}
@@ -150,20 +186,47 @@ class SyncService {
 		return null;
 	}
 
-	/** @return array{changes:list<array>, cursor:int, hasMore:bool, resetRequired:bool} */
-	public function pull(string $uid, int $cursor, int $limit = 500, ?array $types = null): array {
+	/**
+	 * @param list<string>|null $only restrict to these collections (a client
+	 *        reading a collection it just joined, from cursor 0)
+	 * @return array{changes:list<array>, cursor:int, hasMore:bool, resetRequired:bool, joined:list<string>, collections:list<array>}
+	 */
+	public function pull(string $uid, int $cursor, int $limit = 500, ?array $types = null, ?array $only = null): array {
 		$limit = max(1, min($limit, self::MAX_PULL));
-		$collections = $this->store->readableCollections($uid);
-		$horizon = $this->store->gcHorizon();
-		if ($cursor > 0 && $cursor < $horizon) {
-			return ['changes' => [], 'cursor' => $cursor, 'hasMore' => false, 'resetRequired' => true];
+		$cols = $this->store->collections($uid);
+		$ids = array_column($cols, 'id');
+		$joined = [];
+		if ($only !== null) {
+			$ids = array_values(array_intersect($ids, $only));
+		} elseif ($cursor > 0) {
+			// access granted after this client's cursor: what was in there
+			// before has older revs — the client must read it from 0
+			foreach ($cols as $c) {
+				if ($c['since'] > $cursor) {
+					$joined[] = $c['id'];
+				}
+			}
 		}
-		$rows = $this->store->changesSince($collections, $cursor, $limit + 1, $types);
+		$info = array_map(fn ($c) => ['id' => $c['id'], 'name' => $c['name'], 'owner' => $c['owner'],
+			'kind' => $c['kind'], 'perm' => $c['perm']], $cols);
+		$horizon = $this->store->gcHorizon();
+		if ($only === null && $cursor > 0 && $cursor < $horizon) {
+			return ['changes' => [], 'cursor' => $cursor, 'hasMore' => false, 'resetRequired' => true,
+				'joined' => [], 'collections' => $info];
+		}
+		$rows = $ids === [] ? [] : $this->store->changesSince($ids, $cursor, $limit + 1, $types);
 		$hasMore = count($rows) > $limit;
 		$rows = array_slice($rows, 0, $limit);
 		$out = array_map(fn (Record $r) => $r->toArray(), $rows);
 		$next = $rows === [] ? $cursor : end($rows)->rev;
-		return ['changes' => $out, 'cursor' => $next, 'hasMore' => $hasMore, 'resetRequired' => false];
+		if (!$hasMore && $only === null) {
+			// step past every grant, so "joined" is reported once
+			foreach ($cols as $c) {
+				$next = max($next, $c['since']);
+			}
+		}
+		return ['changes' => $out, 'cursor' => $next, 'hasMore' => $hasMore, 'resetRequired' => false,
+			'joined' => $joined, 'collections' => $info];
 	}
 
 	/** @return list<array> */

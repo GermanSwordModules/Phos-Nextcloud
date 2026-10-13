@@ -6,6 +6,8 @@ namespace OCA\Phos\Tests\Unit;
 
 use OCA\Phos\Sync\Canonical;
 use OCA\Phos\Sync\Clock;
+use OCA\Phos\Sync\CollectionService;
+use OCA\Phos\Sync\ForbiddenException;
 use OCA\Phos\Sync\MemoryRecordStore;
 use OCA\Phos\Sync\SyncService;
 use OCA\Phos\Sync\TypeRegistry;
@@ -34,6 +36,7 @@ final class VectorTest extends TestCase {
 		$clock->now = $v->now ?? 1791200000000;
 		$store = new MemoryRecordStore();
 		$svc = new SyncService($store, new TypeRegistry(), $clock);
+		$cols = new CollectionService($store);
 
 		foreach ($v->steps as $i => $step) {
 			$where = basename($file) . " step $i";
@@ -41,12 +44,35 @@ final class VectorTest extends TestCase {
 			if (isset($step->now)) {
 				$clock->now = $step->now;
 			}
+			$actual = null;
+			try {
 			if (isset($step->push)) {
 				$changes = array_map(fn ($c) => self::change($c), $step->push->changes);
 				$actual = $svc->push($uid, $step->push->device, $changes);
 			} elseif (isset($step->pull)) {
 				$actual = $svc->pull($uid, $step->pull->cursor ?? 0, $step->pull->limit ?? 500,
-					isset($step->pull->types) ? $step->pull->types : null);
+					isset($step->pull->types) ? $step->pull->types : null,
+					isset($step->pull->collections) ? $step->pull->collections : null);
+			} elseif (isset($step->createCollection)) {
+				$actual = ['id' => $cols->create($uid, $step->createCollection->name)];
+			} elseif (isset($step->addMember)) {
+				$m = $step->addMember;
+				$cols->addMember($uid, $m->collection, $m->type, $m->id, $m->perm);
+				$actual = ['ok' => true];
+			} elseif (isset($step->removeMember)) {
+				$m = $step->removeMember;
+				$cols->removeMember($uid, $m->collection, $m->type, $m->id);
+				$actual = ['ok' => true];
+			} elseif (isset($step->deleteCollection)) {
+				$cols->delete($uid, $step->deleteCollection->collection);
+				$actual = ['ok' => true];
+			} elseif (isset($step->members)) {
+				$actual = $cols->members($uid, $step->members->collection);
+			} elseif (isset($step->userGroups)) {
+				foreach ((array)$step->userGroups as $u => $g) {
+					$store->groups[$u] = $g;
+				}
+				continue;
 			} elseif (isset($step->get)) {
 				$actual = $store->find($store->personalCollection($uid), $step->get->type, $step->get->key)?->toArray();
 			} elseif (isset($step->conflicts)) {
@@ -58,6 +84,9 @@ final class VectorTest extends TestCase {
 				continue;
 			} else {
 				$this->fail("$where: unknown step");
+			}
+			} catch (ForbiddenException $e) {
+				$actual = ['error' => 'forbidden'];
 			}
 			if (property_exists($step, 'expect')) {
 				$act = json_decode(json_encode($actual, JSON_THROW_ON_ERROR), false);

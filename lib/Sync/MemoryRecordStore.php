@@ -24,12 +24,83 @@ final class MemoryRecordStore implements RecordStore {
 		return 'personal-' . $uid;
 	}
 
+	/** @var array<string, array{id:string,name:?string,owner:string,kind:string}> */
+	private array $collections = [];
+	/** @var array<string, array<string, array{ptype:string,pid:string,perm:string,since:int}>> */
+	private array $members = [];
+	/** @var array<string, list<string>> uid -> groups (vectors set this) */
+	public array $groups = [];
+	private int $collSeq = 0;
+
+	public function collections(string $uid): array {
+		$out = [['id' => $this->personalCollection($uid), 'name' => null, 'owner' => $uid,
+			'kind' => 'personal', 'perm' => 'admin', 'since' => 0]];
+		foreach ($this->collections as $c) {
+			if ($c['owner'] === $uid) {
+				$out[] = $c + ['perm' => 'admin', 'since' => 0];
+				continue;
+			}
+			$best = null;
+			foreach ($this->members[$c['id']] ?? [] as $m) {
+				$hit = ($m['ptype'] === 'user' && $m['pid'] === $uid)
+					|| ($m['ptype'] === 'group' && in_array($m['pid'], $this->groups[$uid] ?? [], true));
+				if ($hit && ($best === null || CollectionPerm::rank($m['perm']) > CollectionPerm::rank($best['perm']))) {
+					$best = $m;
+				}
+			}
+			if ($best !== null) {
+				$out[] = $c + ['perm' => $best['perm'], 'since' => $best['since']];
+			}
+		}
+		return $out;
+	}
+
 	public function readableCollections(string $uid): array {
-		return [$this->personalCollection($uid)];
+		return array_column($this->collections($uid), 'id');
 	}
 
 	public function writableCollections(string $uid): array {
-		return [$this->personalCollection($uid)];
+		return array_column(array_filter($this->collections($uid),
+			fn ($c) => CollectionPerm::canWrite($c['perm'])), 'id');
+	}
+
+	public function getCollection(string $id): ?array {
+		return $this->collections[$id] ?? null;
+	}
+
+	public function createCollection(string $uid, string $name): string {
+		$id = 'shared-' . (++$this->collSeq);
+		$this->collections[$id] = ['id' => $id, 'name' => $name, 'owner' => $uid, 'kind' => 'shared'];
+		return $id;
+	}
+
+	public function renameCollection(string $id, string $name): void {
+		if (isset($this->collections[$id])) {
+			$this->collections[$id]['name'] = $name;
+		}
+	}
+
+	public function deleteCollection(string $id): void {
+		unset($this->collections[$id], $this->members[$id]);
+		foreach ($this->records as $k => $r) {
+			if ($r->collection === $id) {
+				unset($this->records[$k], $this->history[$k]);
+			}
+		}
+	}
+
+	public function members(string $collection): array {
+		return array_values($this->members[$collection] ?? []);
+	}
+
+	public function setMember(string $collection, string $ptype, string $pid, string $perm): void {
+		$k = "$ptype\x00$pid";
+		$since = $this->members[$collection][$k]['since'] ?? ++$this->seq;
+		$this->members[$collection][$k] = ['ptype' => $ptype, 'pid' => $pid, 'perm' => $perm, 'since' => $since];
+	}
+
+	public function removeMember(string $collection, string $ptype, string $pid): void {
+		unset($this->members[$collection]["$ptype\x00$pid"]);
 	}
 
 	public function find(string $collection, string $type, string $key): ?Record {

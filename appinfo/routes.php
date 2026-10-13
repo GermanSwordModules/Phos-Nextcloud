@@ -13,5 +13,13 @@ return [
 		['name' => 'api#push', 'url' => '/api/v1/push', 'verb' => 'POST'],
 		['name' => 'api#conflicts', 'url' => '/api/v1/conflicts', 'verb' => 'GET'],
 		['name' => 'api#resolveConflict', 'url' => '/api/v1/conflicts/{id}/resolve', 'verb' => 'POST'],
+		['name' => 'collections#index', 'url' => '/api/v1/collections', 'verb' => 'GET'],
+		['name' => 'collections#create', 'url' => '/api/v1/collections', 'verb' => 'POST'],
+		['name' => 'collections#update', 'url' => '/api/v1/collections/{collection}', 'verb' => 'PUT'],
+		['name' => 'collections#destroy', 'url' => '/api/v1/collections/{collection}', 'verb' => 'DELETE'],
+		['name' => 'collections#members', 'url' => '/api/v1/collections/{collection}/members', 'verb' => 'GET'],
+		['name' => 'collections#addMember', 'url' => '/api/v1/collections/{collection}/members', 'verb' => 'POST'],
+		['name' => 'collections#removeMember', 'url' => '/api/v1/collections/{collection}/members/{type}/{pid}', 'verb' => 'DELETE'],
+		['name' => 'collections#sharees', 'url' => '/api/v1/sharees', 'verb' => 'GET'],
 	],
 ];

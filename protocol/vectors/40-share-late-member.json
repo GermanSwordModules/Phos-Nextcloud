@@ -1,0 +1,182 @@
+{
+ "name": "40-share-late-member",
+ "description": "A member added after records exist is told to read the whole collection ('joined'); its personal data stays invisible to others.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Hauskreis"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "s001",
+      "type": "label",
+      "key": "label:Hauskreis",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "name": "Hauskreis",
+       "color": "#3366cc"
+      },
+      "collection": "shared-1"
+     },
+     {
+      "changeId": "s002",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200000001-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      },
+      "collection": "shared-1"
+     },
+     {
+      "changeId": "s003",
+      "type": "bookmark",
+      "key": "bm:private",
+      "op": "upsert",
+      "hlc": "1791200000002-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "private",
+       "noteMd": "nur für mich"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted"
+    },
+    {
+     "status": "accepted"
+    },
+    {
+     "status": "accepted"
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "s004",
+      "type": "label",
+      "key": "label:Bob",
+      "op": "upsert",
+      "hlc": "1791200000003-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "name": "Bob"
+      }
+     }
+    ]
+   },
+   "uid": "bob",
+   "expect": [
+    {
+     "status": "accepted"
+    }
+   ]
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "label:Bob"
+     }
+    ],
+    "joined": []
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob",
+    "perm": "read"
+   }
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 4
+   },
+   "expect": {
+    "changes": [],
+    "joined": [
+     "shared-1"
+    ],
+    "cursor": 5,
+    "collections": [
+     {
+      "id": "personal-bob",
+      "kind": "personal",
+      "perm": "admin"
+     },
+     {
+      "id": "shared-1",
+      "name": "Hauskreis",
+      "owner": "alice",
+      "kind": "shared",
+      "perm": "read"
+     }
+    ]
+   }
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0,
+    "collections": [
+     "shared-1"
+    ]
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "label:Hauskreis",
+      "collection": "shared-1"
+     },
+     {
+      "key": "bm:b1",
+      "collection": "shared-1"
+     }
+    ],
+    "joined": []
+   }
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 5
+   },
+   "expect": {
+    "changes": [],
+    "joined": []
+   }
+  }
+ ]
+}

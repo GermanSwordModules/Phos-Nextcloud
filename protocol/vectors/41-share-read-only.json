@@ -1,0 +1,127 @@
+{
+ "name": "41-share-read-only",
+ "description": "A read-only member's push is refused and answered with the current record, so the client can undo the edit.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Hauskreis"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "s001",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      },
+      "collection": "shared-1"
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob",
+    "perm": "read"
+   }
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "s002",
+      "type": "bookmark",
+      "key": "bm:b1",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "Bob war hier",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      },
+      "collection": "shared-1"
+     }
+    ]
+   },
+   "uid": "bob",
+   "expect": [
+    {
+     "status": "forbidden",
+     "record": {
+      "rev": 1,
+      "payload": {
+       "id": "b1",
+       "bookOsis": "Rom",
+       "chap": 8,
+       "vStart": 28,
+       "noteMd": "alles zum Besten",
+       "labelNames": [
+        "Hauskreis"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "s003",
+      "type": "bookmark",
+      "key": "bm:x",
+      "op": "upsert",
+      "hlc": "1791200001001-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 0,
+      "payload": {
+       "id": "x"
+      },
+      "collection": "shared-1"
+     }
+    ]
+   },
+   "uid": "bob",
+   "expect": [
+    {
+     "status": "forbidden"
+    }
+   ]
+  }
+ ]
+}

@@ -230,6 +230,33 @@ from their copy. A record whose payload would exceed the limit is stored as a
 file below `Phos/.records/<type>/` and sent as `{"$file": "<path>", "size":
 …, "md5": …}`; receivers fetch and substitute it before applying.
 
+## 11. Sharing (phase 2)
+
+Every record belongs to a collection. Besides the personal one, a user can
+create **shared collections** and add members — Nextcloud users, groups or
+teams — with `read`, `write` or `admin` permission. The owner is always admin.
+
+- `GET /collections` → `{collections:[{id, name, owner, ownerName, kind, perm, since}]}`
+- `POST /collections` `{name}` → `{id}`; `PUT /collections/{collection}` `{name}`
+  (admin); `DELETE /collections/{collection}` (owner; removes its records).
+- `GET /collections/{collection}/members`; `POST …/members` `{type: user|group|team,
+  id, perm}` (admin); `DELETE …/members/{type}/{id}` (admin, or yourself = leave).
+- `GET /sharees?search=` — Nextcloud's sharee search (users, groups, teams).
+
+Sync rules:
+- `GET /changes` also returns `collections` (what the user can read now) and
+  `joined`: collections access to which was granted after the given cursor.
+  Their older records have smaller revs, so the client reads each joined
+  collection once from 0 with `&collections=<id>`. The returned cursor steps
+  past every grant, so a collection is reported as joined only once.
+- A collection that disappears from `collections` was revoked: the client
+  removes its local copies.
+- Pushing into a collection without write permission → `forbidden`; when the
+  user can read it, the current `record` is included so the client can undo
+  the local edit.
+- `"moveFrom": "<collection>"` on an upsert moves a record: after the write in
+  the target collection, a tombstone is written in the source.
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

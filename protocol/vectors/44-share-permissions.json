@@ -1,0 +1,120 @@
+{
+ "name": "44-share-permissions",
+ "description": "Only admins manage members, only the owner deletes, anyone may leave.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Hauskreis"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob",
+    "perm": "write"
+   }
+  },
+  {
+   "uid": "bob",
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "carol",
+    "perm": "read"
+   },
+   "expect": {
+    "error": "forbidden"
+   }
+  },
+  {
+   "uid": "bob",
+   "deleteCollection": {
+    "collection": "shared-1"
+   },
+   "expect": {
+    "error": "forbidden"
+   }
+  },
+  {
+   "uid": "carol",
+   "members": {
+    "collection": "shared-1"
+   },
+   "expect": {
+    "error": "forbidden"
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "carol",
+    "perm": "admin"
+   }
+  },
+  {
+   "uid": "carol",
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "dave",
+    "perm": "read"
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "uid": "bob",
+   "removeMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob"
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "members": {
+    "collection": "shared-1"
+   },
+   "expect": [
+    {
+     "pid": "carol",
+     "perm": "admin"
+    },
+    {
+     "pid": "dave",
+     "perm": "read"
+    }
+   ]
+  },
+  {
+   "deleteCollection": {
+    "collection": "shared-1"
+   },
+   "expect": {
+    "ok": true
+   }
+  },
+  {
+   "uid": "carol",
+   "pull": {
+    "cursor": 0
+   },
+   "expect": {
+    "collections": [
+     {
+      "id": "personal-carol"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Phos\Db;
 
 use OCA\Phos\Sync\Clock;
+use OCA\Phos\Sync\CollectionPerm;
 use OCA\Phos\Sync\ConcurrentWriteException;
 use OCA\Phos\Sync\Record;
 use OCA\Phos\Sync\RecordStore;
@@ -12,6 +13,9 @@ use OCP\DB\Exception as DbException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IAppConfig;
 use OCP\IDBConnection;
+use OCP\IGroupManager;
+use OCP\IUserManager;
+use OCP\Teams\ITeamManager;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 
@@ -32,7 +36,189 @@ class DbRecordStore implements RecordStore {
 		private ILockingProvider $locks,
 		private IAppConfig $appConfig,
 		private Clock $clock,
+		private IGroupManager $groups,
+		private IUserManager $users,
+		private ITeamManager $teams,
 	) {
+	}
+
+	/** user, group and team principals a user stands for */
+	private function principals(string $uid): array {
+		$p = [['user', $uid]];
+		$user = $this->users->get($uid);
+		if ($user !== null) {
+			foreach ($this->groups->getUserGroupIds($user) as $g) {
+				$p[] = ['group', (string)$g];
+			}
+		}
+		try {
+			if ($this->teams->hasTeamSupport()) {
+				foreach ($this->teams->getTeamsForUser($uid) as $team) {
+					$p[] = ['team', (string)$team->getId()];
+				}
+			}
+		} catch (\Throwable) {
+			// no Teams (Circles) app: groups and users only
+		}
+		return $p;
+	}
+
+	public function collections(string $uid): array {
+		$personal = $this->personalCollection($uid);
+		$out = [$personal => ['id' => $personal, 'name' => null, 'owner' => $uid, 'kind' => 'personal',
+			'perm' => 'admin', 'since' => 0]];
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from('phos_collections')
+			->where($qb->expr()->eq('owner', $qb->createNamedParameter($uid)))
+			->andWhere($qb->expr()->eq('kind', $qb->createNamedParameter('shared')));
+		$res = $qb->executeQuery();
+		while (($r = $res->fetch()) !== false) {
+			$out[$r['id']] = ['id' => (string)$r['id'], 'name' => $r['name'], 'owner' => $uid, 'kind' => 'shared',
+				'perm' => 'admin', 'since' => 0];
+		}
+		$res->closeCursor();
+
+		$qb = $this->db->getQueryBuilder();
+		$or = [];
+		foreach ($this->principals($uid) as [$t, $id]) {
+			$or[] = $qb->expr()->andX(
+				$qb->expr()->eq('m.ptype', $qb->createNamedParameter($t)),
+				$qb->expr()->eq('m.pid', $qb->createNamedParameter($id)));
+		}
+		$qb->select('m.coll', 'm.perm', 'm.since', 'c.name', 'c.owner')
+			->from('phos_members', 'm')
+			->innerJoin('m', 'phos_collections', 'c', $qb->expr()->eq('m.coll', 'c.id'))
+			->where($qb->expr()->orX(...$or));
+		$res = $qb->executeQuery();
+		while (($r = $res->fetch()) !== false) {
+			$id = (string)$r['coll'];
+			if (isset($out[$id]) && $out[$id]['owner'] === $uid) {
+				continue;
+			}
+			$perm = (string)$r['perm'];
+			if (!isset($out[$id]) || CollectionPerm::rank($perm) > CollectionPerm::rank($out[$id]['perm'])) {
+				$since = (int)$r['since'];
+				if (isset($out[$id])) {
+					$since = min($since, $out[$id]['since']);   // earliest grant counts
+				}
+				$out[$id] = ['id' => $id, 'name' => $r['name'], 'owner' => (string)$r['owner'], 'kind' => 'shared',
+					'perm' => $perm, 'since' => $since];
+			}
+		}
+		$res->closeCursor();
+		return array_values($out);
+	}
+
+	public function getCollection(string $id): ?array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from('phos_collections')->where($qb->expr()->eq('id', $qb->createNamedParameter($id)));
+		$res = $qb->executeQuery();
+		$r = $res->fetch();
+		$res->closeCursor();
+		return $r === false ? null : ['id' => (string)$r['id'], 'name' => $r['name'], 'owner' => (string)$r['owner'],
+			'kind' => (string)$r['kind']];
+	}
+
+	public function createCollection(string $uid, string $name): string {
+		$h = bin2hex(random_bytes(16));
+		$id = sprintf('%s-%s-4%s-8%s-%s', substr($h, 0, 8), substr($h, 8, 4), substr($h, 13, 3), substr($h, 17, 3), substr($h, 20, 12));
+		$qb = $this->db->getQueryBuilder();
+		$qb->insert('phos_collections')->values([
+			'id' => $qb->createNamedParameter($id),
+			'owner' => $qb->createNamedParameter($uid),
+			'kind' => $qb->createNamedParameter('shared'),
+			'name' => $qb->createNamedParameter($name),
+			'created' => $qb->createNamedParameter($this->clock->nowMs(), IQueryBuilder::PARAM_INT),
+		])->executeStatement();
+		return $id;
+	}
+
+	public function renameCollection(string $id, string $name): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update('phos_collections')->set('name', $qb->createNamedParameter($name))
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)))->executeStatement();
+	}
+
+	public function deleteCollection(string $id): void {
+		$this->db->beginTransaction();
+		try {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('id')->from('phos_records')->where($qb->expr()->eq('coll', $qb->createNamedParameter($id)));
+			$res = $qb->executeQuery();
+			$ids = [];
+			while (($r = $res->fetchOne()) !== false) {
+				$ids[] = (int)$r;
+			}
+			$res->closeCursor();
+			foreach (array_chunk($ids, 500) as $chunk) {
+				$qb = $this->db->getQueryBuilder();
+				$qb->delete('phos_history')->where($qb->expr()->in('record_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))->executeStatement();
+			}
+			foreach (['phos_records' => 'coll', 'phos_conflicts' => 'coll', 'phos_members' => 'coll', 'phos_collections' => 'id'] as $t => $col) {
+				$qb = $this->db->getQueryBuilder();
+				$qb->delete($t)->where($qb->expr()->eq($col, $qb->createNamedParameter($id)))->executeStatement();
+			}
+			$this->db->commit();
+		} catch (\Throwable $e) {
+			$this->db->rollBack();
+			throw $e;
+		}
+	}
+
+	public function members(string $collection): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('ptype', 'pid', 'perm', 'since')->from('phos_members')
+			->where($qb->expr()->eq('coll', $qb->createNamedParameter($collection)))
+			->orderBy('id', 'ASC');
+		$res = $qb->executeQuery();
+		$out = [];
+		while (($r = $res->fetch()) !== false) {
+			$out[] = ['ptype' => (string)$r['ptype'], 'pid' => (string)$r['pid'], 'perm' => (string)$r['perm'], 'since' => (int)$r['since']];
+		}
+		$res->closeCursor();
+		return $out;
+	}
+
+	public function setMember(string $collection, string $ptype, string $pid, string $perm): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update('phos_members')->set('perm', $qb->createNamedParameter($perm))
+			->where($qb->expr()->eq('coll', $qb->createNamedParameter($collection)))
+			->andWhere($qb->expr()->eq('ptype', $qb->createNamedParameter($ptype)))
+			->andWhere($qb->expr()->eq('pid', $qb->createNamedParameter($pid)));
+		if ($qb->executeStatement() > 0) {
+			return;
+		}
+		// a fresh rev from the journal sequence: clients behind it read the
+		// whole collection ("joined")
+		$this->lock();
+		try {
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert('phos_seq')->values([
+				'record_id' => $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT),
+				'created' => $qb->createNamedParameter($this->clock->nowMs(), IQueryBuilder::PARAM_INT),
+			])->executeStatement();
+			$since = $qb->getLastInsertId();
+			$qb = $this->db->getQueryBuilder();
+			$qb->insert('phos_members')->values([
+				'coll' => $qb->createNamedParameter($collection),
+				'ptype' => $qb->createNamedParameter($ptype),
+				'pid' => $qb->createNamedParameter($pid),
+				'perm' => $qb->createNamedParameter($perm),
+				'since' => $qb->createNamedParameter($since, IQueryBuilder::PARAM_INT),
+				'created' => $qb->createNamedParameter($this->clock->nowMs(), IQueryBuilder::PARAM_INT),
+			])->executeStatement();
+		} finally {
+			$this->locks->releaseLock(self::LOCK, ILockingProvider::LOCK_EXCLUSIVE);
+		}
+	}
+
+	public function removeMember(string $collection, string $ptype, string $pid): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete('phos_members')
+			->where($qb->expr()->eq('coll', $qb->createNamedParameter($collection)))
+			->andWhere($qb->expr()->eq('ptype', $qb->createNamedParameter($ptype)))
+			->andWhere($qb->expr()->eq('pid', $qb->createNamedParameter($pid)))
+			->executeStatement();
 	}
 
 	public function personalCollection(string $uid): string {
@@ -68,21 +254,12 @@ class DbRecordStore implements RecordStore {
 	}
 
 	public function readableCollections(string $uid): array {
-		// Phase 2 adds collections shared with the user (phos_members).
-		$personal = $this->personalCollection($uid);
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('id')->from('phos_collections')->where($qb->expr()->eq('owner', $qb->createNamedParameter($uid)));
-		$res = $qb->executeQuery();
-		$ids = [];
-		while (($id = $res->fetchOne()) !== false) {
-			$ids[] = (string)$id;
-		}
-		$res->closeCursor();
-		return array_values(array_unique(array_merge([$personal], $ids)));
+		return array_column($this->collections($uid), 'id');
 	}
 
 	public function writableCollections(string $uid): array {
-		return $this->readableCollections($uid);
+		return array_column(array_filter($this->collections($uid),
+			fn ($c) => CollectionPerm::canWrite($c['perm'])), 'id');
 	}
 
 	public function find(string $collection, string $type, string $key): ?Record {
