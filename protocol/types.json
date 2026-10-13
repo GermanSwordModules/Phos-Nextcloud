@@ -1,27 +1,116 @@
 {
-  "_comment": "Record types and their merge policy. Normative for server and clients (docs/protocol.md §5). Unknown types are stored with policy 'lww'.",
-  "version": 1,
+  "_comment": "Record types and their merge policy. Normative for server and clients (docs/protocol.md §5). 'text' fields merge line by line, 'sets' as sets, 'opaque' fields (e.g. RTF) never merge: changed on both sides = conflict. Unknown types are stored with policy 'lww'.",
+  "version": 2,
   "types": {
-    "bookmark":       { "policy": "fields", "text": ["noteMd"], "sets": ["labelNames"] },
-    "label":          { "policy": "lww" },
-    "note":           { "policy": "fields", "text": ["text"] },
-    "readingPosition":{ "policy": "lww" },
-    "planProgress":   { "policy": "fields", "sets": ["doneDays"] },
-    "readingPlan":    { "policy": "lww" },
-    "workspace":      { "policy": "lww" },
-    "setting":        { "policy": "lww" },
-    "project":        { "policy": "fields" },
-    "projectDoc":     { "policy": "fields", "text": ["text"] },
-    "pericope":       { "policy": "fields" },
-    "exegesis":       { "policy": "fields", "text": ["text"] },
-    "sermon":         { "policy": "fields", "text": ["text"] },
-    "presentation":   { "policy": "lww" },
-    "biblioEntry":    { "policy": "fields" },
-    "printlibItem":   { "policy": "fields" },
-    "ebook":          { "policy": "lww" },
-    "module":         { "policy": "lww" },
-    "workflow":       { "policy": "lww" },
-    "syntaxDiagram":  { "policy": "lww" },
-    "userData":       { "policy": "lww" }
+    "bookmark": {
+      "policy": "fields",
+      "text": [
+        "noteMd"
+      ],
+      "sets": [
+        "labelNames"
+      ]
+    },
+    "label": {
+      "policy": "lww"
+    },
+    "note": {
+      "policy": "fields",
+      "text": [
+        "text"
+      ]
+    },
+    "readingPosition": {
+      "policy": "lww"
+    },
+    "planProgress": {
+      "policy": "fields",
+      "sets": [
+        "doneDays"
+      ]
+    },
+    "readingPlan": {
+      "policy": "lww"
+    },
+    "workspace": {
+      "policy": "lww"
+    },
+    "setting": {
+      "policy": "lww"
+    },
+    "project": {
+      "policy": "fields",
+      "opaque": [
+        "notesRtf",
+        "synthesisRtf"
+      ]
+    },
+    "projectDoc": {
+      "policy": "fields",
+      "text": [
+        "text"
+      ]
+    },
+    "pericope": {
+      "policy": "fields",
+      "opaque": [
+        "rtf"
+      ]
+    },
+    "exegesis": {
+      "policy": "fields",
+      "opaque": [
+        "rtf"
+      ]
+    },
+    "sermon": {
+      "policy": "fields",
+      "text": [
+        "main_idea",
+        "goal",
+        "audience",
+        "intro",
+        "conclusion"
+      ]
+    },
+    "presentation": {
+      "policy": "lww"
+    },
+    "biblioEntry": {
+      "policy": "fields"
+    },
+    "printlibItem": {
+      "policy": "fields"
+    },
+    "ebook": {
+      "policy": "lww"
+    },
+    "module": {
+      "policy": "lww"
+    },
+    "workflow": {
+      "policy": "lww"
+    },
+    "syntaxDiagram": {
+      "policy": "lww"
+    },
+    "userData": {
+      "policy": "fields",
+      "text": [
+        "text"
+      ]
+    },
+    "projectOcc": {
+      "policy": "lww"
+    },
+    "projectIndex": {
+      "policy": "lww"
+    },
+    "biblioFile": {
+      "policy": "fields",
+      "text": [
+        "text"
+      ]
+    }
   }
 }

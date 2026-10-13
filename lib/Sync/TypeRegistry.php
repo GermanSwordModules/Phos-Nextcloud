@@ -6,7 +6,7 @@ namespace OCA\Phos\Sync;
 
 /** Merge policy per record type, read from protocol/types.json. */
 final class TypeRegistry {
-	/** @var array<string, array{policy:string, text?:list<string>, sets?:list<string>}> */
+	/** @var array<string, array{policy:string, text?:list<string>, sets?:list<string>, opaque?:list<string>}> */
 	private array $types;
 	private array $raw;
 
@@ -16,13 +16,14 @@ final class TypeRegistry {
 		$this->types = $this->raw['types'];
 	}
 
-	/** @return array{policy:string, text:list<string>, sets:list<string>} */
+	/** @return array{policy:string, text:list<string>, sets:list<string>, opaque:list<string>} */
 	public function get(string $type): array {
 		$t = $this->types[$type] ?? ['policy' => 'lww'];
 		return [
 			'policy' => $t['policy'],
 			'text' => $t['text'] ?? [],
 			'sets' => $t['sets'] ?? [],
+			'opaque' => $t['opaque'] ?? [],
 		];
 	}
 

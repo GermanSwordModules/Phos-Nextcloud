@@ -51,6 +51,9 @@ final class Merger {
 				$v = $tv;
 			} elseif (self::eq($tv, $bv)) {
 				$v = $mv;
+			} elseif (in_array($f, $cfg['opaque'], true)) {
+				// e.g. RTF: a line merge could break the document
+				return ['outcome' => self::CONFLICT];
 			} elseif (in_array($f, $cfg['sets'], true) && self::isList($mv) && self::isList($tv)) {
 				$v = self::mergeSet(self::isList($bv) ? $bv : [], $mv, $tv);
 			} elseif (in_array($f, $cfg['text'], true) && is_string($mv) && is_string($tv)) {

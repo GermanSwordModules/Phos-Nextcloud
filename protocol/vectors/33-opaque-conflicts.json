@@ -1,0 +1,164 @@
+{
+ "name": "33-opaque-conflicts",
+ "description": "An 'opaque' field (RTF) changed on both sides is a conflict, never a line merge; changed on one side it merges like any field.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "o1",
+      "type": "pericope",
+      "key": "pericope:p1",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 0,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1",
+       "rtf": "{\\rtf1 Basis}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 1
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "o2",
+      "type": "pericope",
+      "key": "pericope:p1",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 1,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1,1-5",
+       "rtf": "{\\rtf1 Basis}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "o3",
+      "type": "pericope",
+      "key": "pericope:p1",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "baseRev": 1,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1",
+       "rtf": "{\\rtf1 Basis A}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "merged",
+     "record": {
+      "rev": 3,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1,1-5",
+       "rtf": "{\\rtf1 Basis A}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "o4",
+      "type": "pericope",
+      "key": "pericope:p1",
+      "op": "upsert",
+      "hlc": "1791200003000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 2,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1,1-5",
+       "rtf": "{\\rtf1 Basis B}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "conflict",
+     "conflictId": 1,
+     "record": {
+      "rev": 3,
+      "payload": {
+       "uuid": "p1",
+       "title": "Joh 1,1-5",
+       "rtf": "{\\rtf1 Basis A}",
+       "state": {
+        "bible": "ELB"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "conflicts": true,
+   "expect": [
+    {
+     "key": "pericope:p1",
+     "payload": {
+      "uuid": "p1",
+      "title": "Joh 1,1-5",
+      "rtf": "{\\rtf1 Basis B}",
+      "state": {
+       "bible": "ELB"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

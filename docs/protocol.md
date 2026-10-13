@@ -116,6 +116,7 @@ present in base, mine or theirs (absent = `null`):
 | theirs[f] == base[f] | mine[f] |
 | both changed, `f` listed in `sets` | `(mine ∩ theirs) ∪ (mine − base) ∪ (theirs − base)`, order: theirs first, then new items of mine |
 | both changed, `f` listed in `text` | line-based diff3 (§6); overlap → **conflict** |
+| both changed, `f` listed in `opaque` | **conflict** (formats like RTF must not be merged line by line) |
 | both changed, other | value of the side with the higher hlc |
 
 Equality is canonical JSON equality (object keys sorted recursively). A
