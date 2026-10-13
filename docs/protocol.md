@@ -254,6 +254,14 @@ Sync rules:
 - Pushing into a collection without write permission → `forbidden`; when the
   user can read it, the current `record` is included so the client can undo
   the local edit.
+- File sets (`module`, `ebook`, `presAssets`) in a shared collection are
+  written by its owner only (others get `forbidden` + the record); `moduleKey`
+  never enters a shared collection.
+- Members read the files of a shared collection — which stay in the owner's
+  storage — with `GET /index.php/apps/phos/files/<collection>/<path below Phos/>`
+  (raw bytes, Basic auth). Allowed are only files of a live file-set record of
+  that collection (`Module/<set>/…` etc.) and `.records/…` files named in one of
+  its payloads.
 - `"moveFrom": "<collection>"` on an upsert moves a record: after the write in
   the target collection, a tombstone is written in the source.
 

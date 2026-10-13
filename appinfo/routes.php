@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 // OCS API, base /ocs/v2.php/apps/phos/api/v1 (docs/protocol.md §7).
 return [
+	'routes' => [
+		// files of shared collections, for members (raw bytes, not OCS)
+		['name' => 'files#get', 'url' => '/files/{collection}/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
+	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
 		['name' => 'api#listDevices', 'url' => '/api/v1/devices', 'verb' => 'GET'],

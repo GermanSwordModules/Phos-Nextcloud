@@ -34,6 +34,7 @@ jobs:
           timeout 120 sh -c 'until curl -sf -u admin:phos-dev-pw -H "OCS-APIRequest: true" -H "Accept: application/json" http://127.0.0.1:8090/ocs/v2.php/apps/phos/api/v1/status >/dev/null; do sleep 2; done'
       - run: python3 tests/integration/run_vectors.py http://127.0.0.1:8090 admin phos-dev-pw
       - run: python3 tests/integration/concurrency.py http://127.0.0.1:8090 admin phos-dev-pw
+      - run: python3 tests/integration/file_proxy.py http://127.0.0.1:8090 admin phos-dev-pw
       - name: Server logs
         if: failure()
         run: |

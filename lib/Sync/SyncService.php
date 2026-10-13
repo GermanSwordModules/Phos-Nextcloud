@@ -10,6 +10,10 @@ namespace OCA\Phos\Sync;
  */
 class SyncService {
 	public const MAX_PAYLOAD_BYTES = 1048576;
+	/** manifests of files in the owner's storage: only the owner writes them */
+	public const FILESET_TYPES = ['module', 'ebook', 'presAssets'];
+	/** never in a shared collection */
+	public const PRIVATE_TYPES = ['moduleKey'];
 	public const MAX_PUSH = 500;
 	public const MAX_PULL = 1000;
 	private const RETRIES = 10;
@@ -52,6 +56,21 @@ class SyncService {
 		$collection = $c['collection'] ?? null;
 		$type = $c['type'];
 		$key = $c['key'];
+		if ($collection !== null && $collection !== '' && $collection !== $this->store->personalCollection($uid)) {
+			$info = $this->store->getCollection($collection);
+			if (in_array($type, self::PRIVATE_TYPES, true)) {
+				return ['changeId' => $changeId, 'status' => 'forbidden', 'error' => "$type is never shared"];
+			}
+			if ($info !== null && in_array($type, self::FILESET_TYPES, true) && $info['owner'] !== $uid) {
+				// the files live in the owner's storage; members only read them
+				$res = ['changeId' => $changeId, 'status' => 'forbidden', 'error' => 'only the owner changes shared files'];
+				$cur = $this->store->find($collection, $type, $key);
+				if ($cur !== null) {
+					$res['record'] = $cur->toArray();
+				}
+				return $res;
+			}
+		}
 		if ($collection === null || $collection === '') {
 			$collection = $this->store->personalCollection($uid);
 		} elseif (!in_array($collection, $this->store->writableCollections($uid), true)) {

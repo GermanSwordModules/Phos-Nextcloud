@@ -99,6 +99,15 @@ final class MemoryRecordStore implements RecordStore {
 		$this->members[$collection][$k] = ['ptype' => $ptype, 'pid' => $pid, 'perm' => $perm, 'since' => $since];
 	}
 
+	public function payloadMentions(string $collection, string $needle): bool {
+		foreach ($this->records as $r) {
+			if ($r->collection === $collection && !$r->deleted && str_contains(json_encode($r->payload), $needle)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public function removeMember(string $collection, string $ptype, string $pid): void {
 		unset($this->members[$collection]["$ptype\x00$pid"]);
 	}

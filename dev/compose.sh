@@ -38,6 +38,7 @@ case "$1" in
   occ)   shift; podman exec -u www-data $NAME php occ "$@" ;;
   test)  podman exec -u 0 -w /var/www/html/custom_apps/phos $NAME php vendor/bin/phpunit -c tests/phpunit.xml
          python3 -I "$APP_DIR/tests/integration/run_vectors.py" http://127.0.0.1:$PORT admin phos-dev-pw
-         python3 -I "$APP_DIR/tests/integration/concurrency.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
+         python3 -I "$APP_DIR/tests/integration/concurrency.py" http://127.0.0.1:$PORT admin phos-dev-pw
+         python3 -I "$APP_DIR/tests/integration/file_proxy.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
   *) echo "usage: $0 up|down|reset|occ …|test"; exit 1 ;;
 esac

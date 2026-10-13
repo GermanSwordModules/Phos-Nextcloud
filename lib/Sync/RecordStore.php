@@ -40,6 +40,10 @@ interface RecordStore {
 
 	public function removeMember(string $collection, string $ptype, string $pid): void;
 
+	/** True when a live record of the collection has $needle in its payload
+	 *  (the file proxy: is this ".records/…" file part of the collection?) */
+	public function payloadMentions(string $collection, string $needle): bool;
+
 	public function find(string $collection, string $type, string $key): ?Record;
 
 	/** The version stored with exactly this rev, if history still has it. */

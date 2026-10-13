@@ -212,6 +212,19 @@ class DbRecordStore implements RecordStore {
 		}
 	}
 
+	public function payloadMentions(string $collection, string $needle): bool {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('id')->from('phos_records')
+			->where($qb->expr()->eq('coll', $qb->createNamedParameter($collection)))
+			->andWhere($qb->expr()->eq('deleted', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->like('payload', $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%')))
+			->setMaxResults(1);
+		$res = $qb->executeQuery();
+		$hit = $res->fetchOne() !== false;
+		$res->closeCursor();
+		return $hit;
+	}
+
 	public function removeMember(string $collection, string $ptype, string $pid): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete('phos_members')

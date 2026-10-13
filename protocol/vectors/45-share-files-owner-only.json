@@ -1,0 +1,143 @@
+{
+ "name": "45-share-files-owner-only",
+ "description": "Manifests of files (module, ebook, presAssets) in a shared collection are written by its owner only; moduleKey never enters a shared collection.",
+ "now": 1791200000000,
+ "steps": [
+  {
+   "createCollection": {
+    "name": "Bibeln"
+   },
+   "expect": {
+    "id": "shared-1"
+   }
+  },
+  {
+   "addMember": {
+    "collection": "shared-1",
+    "type": "user",
+    "id": "bob",
+    "perm": "write"
+   }
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "f1",
+      "type": "module",
+      "key": "module:TestMod",
+      "op": "upsert",
+      "hlc": "1791200000000-0000-aaaaaaaaaaaaaaaa",
+      "collection": "shared-1",
+      "payload": {
+       "name": "TestMod",
+       "files": [
+        {
+         "p": "modules/x/nt.bzz",
+         "s": 3,
+         "h": "abc"
+        }
+       ],
+       "total": 3
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "accepted",
+     "record": {
+      "rev": 2
+     }
+    }
+   ]
+  },
+  {
+   "uid": "bob",
+   "push": {
+    "device": "bbbbbbbbbbbbbbbb",
+    "changes": [
+     {
+      "changeId": "f2",
+      "type": "module",
+      "key": "module:TestMod",
+      "op": "upsert",
+      "hlc": "1791200001000-0000-bbbbbbbbbbbbbbbb",
+      "baseRev": 2,
+      "collection": "shared-1",
+      "payload": {
+       "name": "TestMod",
+       "files": [
+        {
+         "p": "modules/x/nt.bzz",
+         "s": 3,
+         "h": "abc"
+        }
+       ],
+       "total": 4
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "forbidden",
+     "record": {
+      "rev": 2,
+      "payload": {
+       "name": "TestMod",
+       "files": [
+        {
+         "p": "modules/x/nt.bzz",
+         "s": 3,
+         "h": "abc"
+        }
+       ],
+       "total": 3
+      }
+     }
+    }
+   ]
+  },
+  {
+   "push": {
+    "device": "aaaaaaaaaaaaaaaa",
+    "changes": [
+     {
+      "changeId": "f3",
+      "type": "moduleKey",
+      "key": "moduleKey:TestMod",
+      "op": "upsert",
+      "hlc": "1791200002000-0000-aaaaaaaaaaaaaaaa",
+      "collection": "shared-1",
+      "payload": {
+       "key": "geheim"
+      }
+     }
+    ]
+   },
+   "expect": [
+    {
+     "status": "forbidden"
+    }
+   ]
+  },
+  {
+   "uid": "bob",
+   "pull": {
+    "cursor": 0,
+    "collections": [
+     "shared-1"
+    ]
+   },
+   "expect": {
+    "changes": [
+     {
+      "key": "module:TestMod"
+     }
+    ]
+   }
+  }
+ ]
+}
