@@ -243,7 +243,7 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 | D-3 ✅ | Module, E-Books, Präsentations-Medien als Dateien über WebDAV (Chunked Upload), Manifeste mit md5, Hintergrund-Hasher/Transfer, Modulinstallation beim Start, CipherKey separat; Datensätze > 1 MB als Datei (BVC `9a0725f7`). Verifiziert: Harness 68 Prüfungen; 477 MB echte E-Books hoch (Abbruch + Fortsetzung) und auf zweitem Profil byte-identisch herunter. Nicht mit echten Modulen (8 GB) getestet | Module auf allen Geräten |
 | M-1 | phos-mobile Nextcloud-Client (Kategorien aus v1, dann Notizen; Module optional) | Mobile im selben Verbund |
 | MIG | v1-Import, Erstabgleich-Dialog | Bestandsdaten übernommen |
-| S-1 | Collections teilen (Server + Desktop-UI), Rechteprüfung, Notifications/Activity | Phase 2 |
+| S-1 ✅ | Server: phos_members, /collections, /members, /sharees, joined/collections im Pull, forbidden+record, moveFrom (`ea467c9`, App 0.2.1). Desktop: Label teilen (Dialog aus Studienpad → Labels), Übersetzung Label-Namen „Name (Besitzer)“, private Labels bleiben privat, Entzug/Beenden/Nur-Lesen (BVC `be1cd7f9`). Verifiziert: 34 HTTP-Vektoren, Harness 86 Prüfungen mit zwei Konten, GUI-Lauf. Offen: Benachrichtigungen/Activity, Übersicht „Mit mir geteilt“ | Phase 2 |
 | S-2 | Module/Projekte/Pläne teilen, Lizenzprüfung, Dateifreigaben | Phase 2 komplett |
 | AB-S | (optional) serverseitige AndBible-Bridge als BackgroundJob | Handy-Änderungen ohne laufenden Desktop |
 | W-1 | PHP-SWORD-Leser + Versifikationen + Reader-API | Bibeltext im Web |
