@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace OCA\Phos\Controller;
 
+use OCA\Phos\Notification\ShareNotifier;
 use OCA\Phos\Sync\CollectionService;
+use OCA\Phos\Sync\RecordStore;
 use OCA\Phos\Sync\ForbiddenException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -27,6 +29,8 @@ class CollectionsController extends OCSController {
 		private IUserManager $users,
 		private IGroupManager $groups,
 		private ISearch $search,
+		private ShareNotifier $notifier,
+		private RecordStore $store,
 	) {
 		parent::__construct($appName, $request);
 	}
@@ -93,6 +97,7 @@ class CollectionsController extends OCSController {
 		$id = $collection;   // not "id": body fields are merged into route parameters
 		try {
 			$this->collections->delete($this->uid(), $id);
+			$this->notifier->revoked($id);
 			return new DataResponse([]);
 		} catch (\Throwable $e) {
 			return self::fail($e);
@@ -117,9 +122,18 @@ class CollectionsController extends OCSController {
 	public function addMember(string $collection): DataResponse {
 		$id = $collection;   // not "id": body fields are merged into route parameters
 		$b = $this->body();
+		$ptype = (string)($b['type'] ?? '');
+		$pid = (string)($b['id'] ?? '');
 		try {
-			$this->collections->addMember($this->uid(), $id, (string)($b['type'] ?? ''), (string)($b['id'] ?? ''),
-				(string)($b['perm'] ?? 'read'));
+			$known = false;
+			foreach ($this->store->members($id) as $m) {
+				$known = $known || ($m['ptype'] === $ptype && $m['pid'] === $pid);
+			}
+			$this->collections->addMember($this->uid(), $id, $ptype, $pid, (string)($b['perm'] ?? 'read'));
+			if (!$known) {   // a changed permission is no news
+				$this->notifier->shared($this->uid(), $this->store->getCollection($id) ?? ['id' => $id, 'owner' => ''],
+					$ptype, $pid);
+			}
 			return new DataResponse([]);
 		} catch (\Throwable $e) {
 			return self::fail($e);
@@ -131,6 +145,9 @@ class CollectionsController extends OCSController {
 		$id = $collection;
 		try {
 			$this->collections->removeMember($this->uid(), $id, $type, $pid);
+			if ($type === 'user') {
+				$this->notifier->revoked($id, $pid);
+			}
 			return new DataResponse([]);
 		} catch (\Throwable $e) {
 			return self::fail($e);

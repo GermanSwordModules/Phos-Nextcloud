@@ -265,6 +265,13 @@ Sync rules:
 - `"moveFrom": "<collection>"` on an upsert moves a record: after the write in
   the target collection, a tombstone is written in the source.
 
+Notifications: adding a member who was not one before sends a Nextcloud
+notification (app `phos`, object `collection/<id>`, subject `shared`) to that
+user, or to every member of the group (teams: when Nextcloud can list a team's
+members). Changing a member's permission sends nothing; removing a user member
+or deleting the collection marks the notification processed. Clients show
+newly joined collections themselves (`joined`/`collections` above).
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

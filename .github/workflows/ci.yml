@@ -35,6 +35,7 @@ jobs:
       - run: python3 tests/integration/run_vectors.py http://127.0.0.1:8090 admin phos-dev-pw
       - run: python3 tests/integration/concurrency.py http://127.0.0.1:8090 admin phos-dev-pw
       - run: python3 tests/integration/file_proxy.py http://127.0.0.1:8090 admin phos-dev-pw
+      - run: python3 tests/integration/notifications.py http://127.0.0.1:8090 admin phos-dev-pw
       - name: Server logs
         if: failure()
         run: |

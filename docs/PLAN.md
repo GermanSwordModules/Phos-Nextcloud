@@ -218,6 +218,8 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 
 ## 9. Phase 3 — Basales Webfrontend
 
+> Einstieg/Übergabe: `docs/phase3-kontext.md`.
+
 - Vue 3 + `@nextcloud/vue` unter `/apps/phos/`, Navigation links (Bibel, Lesezeichen, Notizen, Studienpads, Leseplan, Geteilt), Nextcloud-Design/Darkmode.
 - **Bibeltext ohne Server-Binärdateien**: PHP-SWORD-Leser in `lib/Service/Sword/` direkt auf den synchronisierten Moduldateien in `Phos/Module/` (über `IRootFolder`):
   - zText/zCom (`.bzs/.bzv/.bzz`, zlib via `gzuncompress`), RawText/RawCom, zLD/RawLD (Wörterbücher); GenBook später.
@@ -245,6 +247,7 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 | MIG | v1-Import, Erstabgleich-Dialog | Bestandsdaten übernommen |
 | S-1 ✅ | Server: phos_members, /collections, /members, /sharees, joined/collections im Pull, forbidden+record, moveFrom (`ea467c9`, App 0.2.1). Desktop: Label teilen (Dialog aus Studienpad → Labels), Übersetzung Label-Namen „Name (Besitzer)“, private Labels bleiben privat, Entzug/Beenden/Nur-Lesen (BVC `be1cd7f9`). Verifiziert: 34 HTTP-Vektoren, Harness 86 Prüfungen mit zwei Konten, GUI-Lauf. Offen: Benachrichtigungen/Activity, Übersicht „Mit mir geteilt“ | Phase 2 |
 | S-2 ✅ | Server: Datei-Endpunkt für Mitglieder (nur Dateien der Sammlung), Datei-Sätze nur vom Besitzer, moduleKey nie geteilt (`2db1a37`, App 0.2.2). Desktop: Projekte (mit Exegesen/Belegstellen), Exegesen, Präsentationen (mit Medien), Predigten, Module (Lesepläne), E-Books teilbar; Übersicht „Teilen …“; Lizenz-Hinweis statt Prüfung (Entscheidung: Verantwortung beim Nutzer). Verifiziert: Harness 98 Prüfungen, file_proxy-Test, GUI | Phase 2 komplett |
+| S-3 ✅ | Server: Nextcloud-Benachrichtigung an neue Mitglieder (Nutzer, Gruppenmitglieder; Teams sobald NC die Mitgliederliste anbietet), keine Doppelmeldung bei Rechteänderung, Entzug/Löschen räumt sie ab (App 0.2.3, `tests/integration/notifications.py`). Desktop: „Teilen …“ im Kontextmenü von Bibliothek (Module, E-Books), Projektübersicht und Studienpad-Thema; fremd Geteiltes in Blau + Personensymbol + Hover „geteilt von …“ (auch Labels-Dialog, Übersicht); Meldung „Neu mit dir geteilt“ nach dem Abgleich. Verifiziert: Harness 103 Prüfungen, GUI | Phase 2 inkl. Benachrichtigungen |
 | AB-S | (optional) serverseitige AndBible-Bridge als BackgroundJob | Handy-Änderungen ohne laufenden Desktop |
 | W-1 | PHP-SWORD-Leser + Versifikationen + Reader-API | Bibeltext im Web |
 | W-2 | Vue-Frontend: Lesen, Lesezeichen/Notizen, Studienpads, Leseplan, Konflikte, Geräte | Phase 3 basal |

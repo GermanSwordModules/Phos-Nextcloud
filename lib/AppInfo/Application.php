@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Phos\AppInfo;
 
 use OCA\Phos\Db\DbRecordStore;
+use OCA\Phos\Notification\Notifier;
 use OCA\Phos\Sync\Clock;
 use OCA\Phos\Sync\CollectionService;
 use OCA\Phos\Sync\RecordStore;
@@ -31,6 +32,7 @@ class Application extends App implements IBootstrap {
 			$c->get(RecordStore::class), $c->get(TypeRegistry::class), $c->get(Clock::class)));
 		$context->registerService(CollectionService::class, fn (ContainerInterface $c) => new CollectionService(
 			$c->get(RecordStore::class)));
+		$context->registerNotifierService(Notifier::class);
 	}
 
 	public function boot(IBootContext $context): void {
