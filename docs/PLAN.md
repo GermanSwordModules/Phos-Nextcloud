@@ -239,7 +239,7 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 | NC-2 ✅ | Records/Journal/Devices, `/changes`, `/push`, `/snapshot`, HLC, MergeService, Konflikte, TombstoneGc | Server erfüllt alle Vektoren |
 | D-0 ✅ | `unit_uuid`, `unit_synctime` (ISO-Zeitstempel in Projekten/Perikopen), AndBible-ID-Fix (5a.1: abgeleitete UUIDs für Lesezeichen und Labels, ID wird nicht mehr umgeschrieben), UUID-IDs für neue Lesezeichen; verifiziert mit `test_bridge` | AndBible-Bridge mehrgerätefest |
 | D-1 ✅ | `unit_ncsync` (Engine, HLC, Schatten/Outbox/Zurückstellen, Massenlösch-Schutz, Hintergrund-Thread), `unit_ncsync_client`, `unit_ncsync_adapters` (Lesezeichen, Labels, Lesepositionen, Leseplan, Arbeitsbereiche, Einstellungen), `.lfm`-Einstellungsdialog, Hooks in `unit1`; verifiziert mit `test_ncsync` (29 Prüfungen) + GUI-Lauf mit Profilkopie | Desktop synchronisiert über Nextcloud |
-| D-2 | Adapter Notizen/StudyPads/Projekte/Exegesen/Bibliographie/Präsentationen/Druckbibliothek + Konfliktdialog + „Nur lokal“ | alle Nutzerdaten |
+| D-2 (größtenteils ✅) | Konfliktdialog ✅, Exegesen/Predigten/Projekte/Präsentationen/Bibliographie/Druckbibliothek/Arbeitsabläufe/Satzdiagramme ✅ (BVC `7b5b228b`, `44a33ef8`; Server `77d59cf`: Merge-Politik `opaque` für RTF). Offen: „Nur lokal“ pro Datensatz, Projekt-Ordner (Kategorien), Belegstellenlisten > 1 MiB (→ D-3 als Datei) | alle Nutzerdaten |
 | D-3 | Module + E-Books + Anhänge über WebDAV-Chunking, Staging-Install, Modulauswahl | Module auf allen Geräten |
 | M-1 | phos-mobile Nextcloud-Client (Kategorien aus v1, dann Notizen; Module optional) | Mobile im selben Verbund |
 | MIG | v1-Import, Erstabgleich-Dialog | Bestandsdaten übernommen |
