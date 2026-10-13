@@ -244,7 +244,7 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 | M-1 | phos-mobile Nextcloud-Client (Kategorien aus v1, dann Notizen; Module optional) | Mobile im selben Verbund |
 | MIG | v1-Import, Erstabgleich-Dialog | Bestandsdaten übernommen |
 | S-1 ✅ | Server: phos_members, /collections, /members, /sharees, joined/collections im Pull, forbidden+record, moveFrom (`ea467c9`, App 0.2.1). Desktop: Label teilen (Dialog aus Studienpad → Labels), Übersetzung Label-Namen „Name (Besitzer)“, private Labels bleiben privat, Entzug/Beenden/Nur-Lesen (BVC `be1cd7f9`). Verifiziert: 34 HTTP-Vektoren, Harness 86 Prüfungen mit zwei Konten, GUI-Lauf. Offen: Benachrichtigungen/Activity, Übersicht „Mit mir geteilt“ | Phase 2 |
-| S-2 | Module/Projekte/Pläne teilen, Lizenzprüfung, Dateifreigaben | Phase 2 komplett |
+| S-2 ✅ | Server: Datei-Endpunkt für Mitglieder (nur Dateien der Sammlung), Datei-Sätze nur vom Besitzer, moduleKey nie geteilt (`2db1a37`, App 0.2.2). Desktop: Projekte (mit Exegesen/Belegstellen), Exegesen, Präsentationen (mit Medien), Predigten, Module (Lesepläne), E-Books teilbar; Übersicht „Teilen …“; Lizenz-Hinweis statt Prüfung (Entscheidung: Verantwortung beim Nutzer). Verifiziert: Harness 98 Prüfungen, file_proxy-Test, GUI | Phase 2 komplett |
 | AB-S | (optional) serverseitige AndBible-Bridge als BackgroundJob | Handy-Änderungen ohne laufenden Desktop |
 | W-1 | PHP-SWORD-Leser + Versifikationen + Reader-API | Bibeltext im Web |
 | W-2 | Vue-Frontend: Lesen, Lesezeichen/Notizen, Studienpads, Leseplan, Konflikte, Geräte | Phase 3 basal |
