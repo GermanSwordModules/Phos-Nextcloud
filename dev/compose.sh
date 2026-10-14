@@ -40,6 +40,7 @@ case "$1" in
          python3 -I "$APP_DIR/tests/integration/run_vectors.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/concurrency.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/file_proxy.py" http://127.0.0.1:$PORT admin phos-dev-pw
-         python3 -I "$APP_DIR/tests/integration/notifications.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
+         python3 -I "$APP_DIR/tests/integration/notifications.py" http://127.0.0.1:$PORT admin phos-dev-pw
+         python3 -I "$APP_DIR/tests/integration/reader.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
   *) echo "usage: $0 up|down|reset|occ …|test"; exit 1 ;;
 esac

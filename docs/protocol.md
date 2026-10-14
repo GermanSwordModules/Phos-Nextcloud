@@ -272,6 +272,37 @@ members). Changing a member's permission sends nothing; removing a user member
 or deleting the collection marks the notification processed. Clients show
 newly joined collections themselves (`joined`/`collections` above).
 
+## 12. Module reader (phase 3)
+
+The server reads synced SWORD modules itself (PHP, `lib/Service/Sword/`, no
+libsword): zText/zCom (2- and 4-byte sizes), RawText/RawCom (also 4), zLD,
+RawLD, RawLD4; compression ZIP (BZIP2 when PHP has it); versifications from
+libsword's canon tables (`v11n.json`). Entries come back as stored (OSIS, ThML,
+TEI …, after libsword's `prepText`), converted to UTF-8; rendering is the
+client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
+
+- `GET /modules` → `{modules:[{name, description, kind: bible|commentary|dictionary|genbook|other,
+  lang, direction, versification, sourceType, features[], options[], ciphered, locked,
+  collection, size}]}` — every `module` record of the readable collections,
+  each name once (own collection first).
+- `GET /modules/{name}/books` → `{versification, books:[{osis, name, testament, verses:[per chapter]}]}`
+  (books of the testaments the module has files for).
+- `GET /modules/{name}/text/{osisBook}/{chapter}` → `{book, chapter, bookIntro, intro,
+  verses:{n: markup}, links:{n: first}}` — `links`: verses sharing one entry
+  with an earlier verse (commentaries); their text repeats the first one.
+- `GET /modules/{name}/entry/{key}` → `{key, text}`; Strong's keys are padded
+  as sword does (`G26` → `G0026`), and a prefixed number falls back to the bare
+  one (`00026`). `@LINK` entries are followed.
+- `GET /modules/{name}/keys?from=&limit=` → `{keys:[…]}` (sorted, from the first key ≥ `from`).
+- `?collection=<id>` picks one copy when a name is readable from several collections.
+
+Files are read in the collection owner's `Phos/Module/<name>/`. A ciphered
+module needs the **reader's own** `moduleKey:<name>` record (personal
+collection); without it the module is listed with `locked: true` and text
+requests answer 422. Errors: 404 unknown module/entry, 422 unreadable
+(locked, wrong key, no such chapter, files missing). Results are cached per
+manifest revision (and per key for ciphered modules).
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

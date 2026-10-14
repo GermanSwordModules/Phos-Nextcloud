@@ -25,5 +25,11 @@ return [
 		['name' => 'collections#addMember', 'url' => '/api/v1/collections/{collection}/members', 'verb' => 'POST'],
 		['name' => 'collections#removeMember', 'url' => '/api/v1/collections/{collection}/members/{type}/{pid}', 'verb' => 'DELETE'],
 		['name' => 'collections#sharees', 'url' => '/api/v1/sharees', 'verb' => 'GET'],
+		// SWORD reader (W-1)
+		['name' => 'reader#modules', 'url' => '/api/v1/modules', 'verb' => 'GET'],
+		['name' => 'reader#books', 'url' => '/api/v1/modules/{module}/books', 'verb' => 'GET'],
+		['name' => 'reader#chapter', 'url' => '/api/v1/modules/{module}/text/{book}/{chapter}', 'verb' => 'GET'],
+		['name' => 'reader#keys', 'url' => '/api/v1/modules/{module}/keys', 'verb' => 'GET'],
+		['name' => 'reader#entry', 'url' => '/api/v1/modules/{module}/entry/{key}', 'verb' => 'GET', 'requirements' => ['key' => '.+']],
 	],
 ];

@@ -1,0 +1,6 @@
+<milestone type="x-importer" subType="x-osis2mod" n="$Rev: 3769 $ (SWORD: 1.9.0)"/>
+<div osisID="Gen" sID="gen1" type="book"/> <title type="main">GENESIS</title> 
+<chapter osisID="Gen.1" sID="gen2"/> <title>The Creation</title> 
+<w lemma="strong:H07225">In the beginning</w> <w lemma="strong:H0430">God</w> created the heaven and the earth.
+And the earth was without form, and void; and darkness <note n="a" type="study">Or, upon the face of the deep.</note>was upon the face of the deep.
+And God said, Let there be light: and there was light. <chapter eID="gen2" osisID="Gen.1"/> <div eID="gen1" osisID="Gen" type="book"/>

@@ -1,0 +1,8 @@
+<milestone type="x-importer" subType="x-osis2mod" n="$Rev: 3769 $ (SWORD: 1.9.0)"/>
+<div osisID="John" sID="gen6" type="book"/> 
+<chapter osisID="John.3" sID="gen7"/> 
+<q marker="" who="Jesus">For God so loved the world, that he gave his only begotten Son</q> (größte Liebe).
+For God sent not his Son into the world to condemn the world <reference osisRef="John.12.47">John 12:47</reference>. <chapter eID="gen7" osisID="John.3"/> <div eID="gen6" osisID="John" type="book"/>
+<div osisID="Rev" sID="gen11" type="book"/> 
+<chapter osisID="Rev.22" sID="gen12"/> 
+The grace of our Lord Jesus Christ be with you all. Amen. <chapter eID="gen12" osisID="Rev.22"/> <div eID="gen11" osisID="Rev" type="book"/>
