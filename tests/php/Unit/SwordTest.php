@@ -110,6 +110,22 @@ class SwordTest extends TestCase {
 		$this->assertSame('Fixture-Key-1', Sapphire::personalize('Fixture-Key-1'));
 	}
 
+	public function testReadingPlan(): void {
+		$m = self::module('tinyplan');
+		$this->assertTrue($m->info()['readingPlan']);
+		$p = $m->readingPlan();
+		$this->assertFalse($p['dateBased']);
+		$this->assertSame([1, 2], array_column($p['days'], 'day'));
+		$this->assertSame(['Gen.1', 'John.3.16-John.3.17'], $p['days'][0]['passages']);
+		$this->assertSame(['Rev.22.21', 'Gen.1.1'], $p['days'][1]['passages']);
+		$this->assertSame(['Rev.22.21', 'Zum Nachdenken.', 'Gen.1.1'], $p['days'][1]['seq']);
+		$dated = \OCA\Phos\Service\Sword\ReadingPlan::parse("1=Jan-1;Jes.7.4;Luke.4.18-Luke.4.21\n2=Jan-2;Ps.54.8\n", false);
+		$this->assertTrue($dated['dateBased']);
+		$this->assertSame('Jan-1', $dated['days'][0]['date']);
+		$this->assertSame(['Jes.7.4', 'Luke.4.18-Luke.4.21'], $dated['days'][0]['passages']);
+		$this->assertNull(self::module('tinyz')->readingPlan());
+	}
+
 	public function testConfContinuationAndRepeats(): void {
 		$c = new Conf("[Mod]\nAbout=line one\\\nline two\nFeature=StrongsNumbers\nFeature=GreekDef\nDataPath=./modules/x/\n");
 		$this->assertSame('Mod', $c->name);

@@ -3,3 +3,4 @@
 /js/
 /.phpunit.cache/
 /composer.phar
+/.playwright-results/

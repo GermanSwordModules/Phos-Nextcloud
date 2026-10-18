@@ -5,6 +5,7 @@
 #   dev/compose.sh reset   delete container + volume
 #   dev/compose.sh occ …   run occ inside
 #   dev/compose.sh test    unit suite + vectors over HTTP + concurrency check
+#   dev/compose.sh web     build the web frontend, JS unit tests, web sync engine + browser smoke test
 set -e
 NAME=phos-nc-dev
 PORT=${PHOS_NC_PORT:-8090}
@@ -42,5 +43,8 @@ case "$1" in
          python3 -I "$APP_DIR/tests/integration/file_proxy.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/notifications.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/reader.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
-  *) echo "usage: $0 up|down|reset|occ …|test"; exit 1 ;;
+  web)   cd "$APP_DIR" && npm run build >/dev/null && npm test
+         PHOS_URL=http://127.0.0.1:$PORT node --test tests/web/engine.live.test.js
+         PHOS_URL=http://127.0.0.1:$PORT npm run smoke ;;
+  *) echo "usage: $0 up|down|reset|occ …|test|web"; exit 1 ;;
 esac

@@ -1,0 +1,43 @@
+{
+	"name": "phos",
+	"version": "0.3.1",
+	"private": true,
+	"description": "Phos web frontend (Nextcloud app)",
+	"license": "AGPL-3.0-or-later",
+	"type": "module",
+	"scripts": {
+		"build": "vite build --mode production",
+		"dev": "vite build --mode development",
+		"watch": "vite build --mode development --watch",
+		"test": "node --test 'src/**/*.test.js'",
+		"smoke": "playwright test -c tests/e2e/playwright.config.js"
+	},
+	"browserslist": [
+		"extends @nextcloud/browserslist-config"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"dependencies": {
+		"@mdi/js": "^7.4.47",
+		"@nextcloud/auth": "^2.6.0",
+		"@nextcloud/axios": "^2.6.0",
+		"@nextcloud/dialogs": "^7.5.0",
+		"@nextcloud/l10n": "^3.4.1",
+		"@nextcloud/router": "^3.2.0",
+		"@nextcloud/vue": "^9.13.1",
+		"dompurify": "^3.4.17",
+		"marked": "^18.1.1",
+		"vue": "3.5",
+		"vue-router": "^4.6.4"
+	},
+	"devDependencies": {
+		"@nextcloud/browserslist-config": "^3.1.2",
+		"@nextcloud/vite-config": "^2.5.4",
+		"@playwright/test": "^1.64.0",
+		"linkedom": "^0.18.13",
+		"sass": "^1.105.1",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.7"
+	}
+}

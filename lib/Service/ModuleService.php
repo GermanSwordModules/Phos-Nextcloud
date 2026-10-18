@@ -151,6 +151,11 @@ class ModuleService {
 		return $this->cached($r, "c/$book/$chapter", fn () => $this->open($uid, $r)->chapter($book, $chapter), $uid);
 	}
 
+	public function plan(string $uid, string $name, ?string $collection = null): array {
+		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		return $this->cached($r, 'plan', fn () => $this->open($uid, $r)->readingPlan() ?? throw new NotFound("$name has no reading plan"), $uid);
+	}
+
 	public function dictEntry(string $uid, string $name, string $key, ?string $collection = null): ?string {
 		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
 		return $this->cached($r, "d/" . mb_strtoupper($key), fn () => $this->open($uid, $r)->dictEntry($key), $uid);

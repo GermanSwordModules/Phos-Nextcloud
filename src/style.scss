@@ -1,0 +1,150 @@
+// Bible text styles shared by all views (rendered by bible/render.js).
+#phos {
+	--phos-jesus: #b3261e;
+	--phos-ref: var(--color-primary-element, #00679e);
+	--phos-note: var(--color-primary-element, #0082c9);
+	--phos-text-size: 1.05rem;
+}
+
+body[data-theme-dark] #phos,
+body[data-themes*='dark'] #phos {
+	--phos-jesus: #ff8a80;
+}
+
+@media (prefers-color-scheme: dark) {
+	body[data-themes*='default'] #phos {
+		--phos-jesus: #ff8a80;
+	}
+}
+
+.phos-text {
+	font-size: var(--phos-text-size);
+	line-height: 1.65;
+
+	.phos-heading {
+		font-weight: bold;
+		margin: 1em 0 0.3em;
+		font-size: 1.05em;
+	}
+
+	.phos-jesus {
+		color: var(--phos-jesus);
+	}
+
+	.phos-divine {
+		font-variant: small-caps;
+	}
+
+	.phos-added {
+		opacity: 0.8;
+	}
+
+	.phos-note {
+		color: var(--phos-note);
+		cursor: pointer;
+		font-weight: bold;
+		padding: 0 1px;
+		font-size: 0.7em;
+
+		&--xref {
+			font-weight: normal;
+		}
+	}
+
+	.phos-ref,
+	.phos-dict {
+		color: var(--phos-ref);
+		text-decoration: underline dotted;
+		cursor: pointer;
+	}
+
+	.phos-w[data-lemma]:not([data-lemma='']) {
+		cursor: help;
+
+		&:hover {
+			background: var(--color-background-hover);
+			border-radius: 3px;
+		}
+	}
+
+	.phos-l {
+		display: inline-block;
+		padding-left: 1em;
+	}
+}
+
+.phos-popover {
+	position: fixed;
+	z-index: 10000;
+	max-width: min(420px, 90vw);
+	max-height: 50vh;
+	overflow: auto;
+	padding: 10px 14px;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	box-shadow: 0 2px 12px var(--color-box-shadow);
+	font-size: 0.95rem;
+	line-height: 1.5;
+
+	&__title {
+		font-weight: bold;
+		margin-bottom: 4px;
+		color: var(--color-text-maxcontrast);
+	}
+}
+
+.phos-markdown {
+	p {
+		margin: 0.3em 0;
+	}
+
+	ul,
+	ol {
+		padding-left: 1.4em;
+	}
+
+	ul {
+		list-style: disc;
+	}
+
+	ol {
+		list-style: decimal;
+	}
+
+	a {
+		color: var(--phos-ref);
+		text-decoration: underline;
+	}
+
+	blockquote {
+		border-left: 3px solid var(--color-border-dark);
+		padding-left: 8px;
+		color: var(--color-text-maxcontrast);
+	}
+}
+
+.phos-page {
+	padding: 8px 20px 40px 50px;
+	max-width: 1100px;
+
+	h2 {
+		font-size: 1.4em;
+		font-weight: bold;
+		margin: 12px 0;
+	}
+}
+
+.phos-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 8px;
+	border-radius: 10px;
+	font-size: 0.85em;
+	line-height: 20px;
+	border: 1px solid var(--phos-chip, var(--color-border-dark));
+	background: color-mix(in srgb, var(--phos-chip, transparent) 25%, transparent);
+	white-space: nowrap;
+}

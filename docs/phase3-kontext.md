@@ -1,4 +1,7 @@
-# Übergabe: Phase 3 (Webfrontend) — Stand 2026-10-13
+# Übergabe: Phase 3 (Webfrontend) — Stand 2026-10-18
+
+**W-1 und W-2 sind umgesetzt** (App 0.3.1, Details in `docs/PLAN.md` §10). Was folgt,
+ist der ursprüngliche Auftrag; darunter die Fallstricke, ergänzt um die aus Phase 3.
 
 Einstieg nach `/clear`. Gesamtplan: `docs/PLAN.md` (§9 Phase 3, §10 Arbeitspakete W-1/W-2).
 Protokoll (normativ): `docs/protocol.md`. Phasen 1 und 2 sind fertig und verifiziert.
@@ -47,3 +50,10 @@ Protokoll (normativ): `docs/protocol.md`. Phasen 1 und 2 sind fertig und verifiz
 - Qt-Canvas zeichnet keine Emoji (keine Font-Ersetzung) → Symbole selbst zeichnen (`NcDrawSharedMark`).
 - Themed `TTreeView` ignoriert `Canvas.Font.Color` → Text im Post-Paint nachzeichnen oder `tvoThemedDraw` aus.
 - Event-Handler, die in der `.lfm` stehen, müssen `published` sein.
+- Web-Build: `@nextcloud/vite-config` 2.5 verlangt vite 7 und TypeScript 5 (mit TS 7 bricht `vite-plugin-dts` beim Laden der Config).
+- `NcAppSidebar` muss neben `NcAppContent` stehen → aus einer Route per `<Teleport to="#content-vue">`.
+- Nextcloud stylt jedes `<button>` als 44-px-Fläche; kleine Chips brauchen explizite `min-height/height/padding`.
+- Playwright: First-Run-Wizard öffnet spät und fängt Klicks ab → `page.route(/\/apps\/firstrunwizard\//, abort)`; Hash-Navigation erst, wenn die App steht.
+- Reader: `mod2imp` ist das Referenzorakel (`dev/sword_dump.php` vergleicht Eintrag für Eintrag); libsword wendet in jedem Treiber `prepText` an; Strong's-Lexika haben teils `G0026`, teils `00026` als Schlüssel.
+- `osis2mod -c` auf RawText erzeugt Daten, die libsword selbst nicht zurücklesen kann — keine Fixture dafür.
+- Paralleltexte richten sich nach Vers*nummern*; die Versifikations-Mappings aus `canon_*.h` sind noch nicht übernommen.

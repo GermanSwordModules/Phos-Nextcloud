@@ -283,7 +283,7 @@ client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
 
 - `GET /modules` → `{modules:[{name, description, kind: bible|commentary|dictionary|genbook|other,
   lang, direction, versification, sourceType, features[], options[], ciphered, locked,
-  collection, size}]}` — every `module` record of the readable collections,
+  readingPlan, collection, size}]}` — every `module` record of the readable collections,
   each name once (own collection first).
 - `GET /modules/{name}/books` → `{versification, books:[{osis, name, testament, verses:[per chapter]}]}`
   (books of the testaments the module has files for).
@@ -294,6 +294,10 @@ client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
   as sword does (`G26` → `G0026`), and a prefixed number falls back to the bare
   one (`00026`). `@LINK` entries are followed.
 - `GET /modules/{name}/keys?from=&limit=` → `{keys:[…]}` (sorted, from the first key ≥ `from`).
+- `GET /modules/{name}/plan` → `{dateBased, days:[{day, date, passages:[osisRef], seq:[osisRef or text]}]}`
+  for modules with `readingPlan: true` (AndBible `.properties`, plus Phos'
+  `PhosReadingPlanText` companion). Progress is the user's `planProgress`
+  record `plan:<name>` `{startDate, doneDays[], checks{day: [bool]}}`.
 - `?collection=<id>` picks one copy when a name is readable from several collections.
 
 Files are read in the collection owner's `Phos/Module/<name>/`. A ciphered

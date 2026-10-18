@@ -5,6 +5,8 @@ declare(strict_types=1);
 // OCS API, base /ocs/v2.php/apps/phos/api/v1 (docs/protocol.md §7).
 return [
 	'routes' => [
+		// web frontend (hash routing inside)
+		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 		// files of shared collections, for members (raw bytes, not OCS)
 		['name' => 'files#get', 'url' => '/files/{collection}/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
 	],
@@ -29,6 +31,7 @@ return [
 		['name' => 'reader#modules', 'url' => '/api/v1/modules', 'verb' => 'GET'],
 		['name' => 'reader#books', 'url' => '/api/v1/modules/{module}/books', 'verb' => 'GET'],
 		['name' => 'reader#chapter', 'url' => '/api/v1/modules/{module}/text/{book}/{chapter}', 'verb' => 'GET'],
+		['name' => 'reader#plan', 'url' => '/api/v1/modules/{module}/plan', 'verb' => 'GET'],
 		['name' => 'reader#keys', 'url' => '/api/v1/modules/{module}/keys', 'verb' => 'GET'],
 		['name' => 'reader#entry', 'url' => '/api/v1/modules/{module}/entry/{key}', 'verb' => 'GET', 'requirements' => ['key' => '.+']],
 	],

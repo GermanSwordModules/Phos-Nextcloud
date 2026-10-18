@@ -37,3 +37,8 @@ for d in rawld:'' rawld4:-4 zld:'-z z'; do
     $(echo $drv | tr a-z A-Z) $drv $M $M > mods.d/tinylex_$drv.conf
 done
 rm -rf modules/*/*/*/lucene
+# AndBible reading plan (+ Phos companion text)
+mkdir -p modules/genbook/rawgenbook/tinyplan
+printf '1=Gen.1;John.3.16-John.3.17\n# comment\n2=Rev.22.21,Gen.1.1\n' > modules/genbook/rawgenbook/tinyplan/tinyplan.properties
+printf '{"2": ["Rev.22.21", "Zum Nachdenken.", "Gen.1.1"]}\n' > modules/genbook/rawgenbook/tinyplan/tinyplan.json
+printf '[TINYPLAN]\nDataPath=./modules/genbook/rawgenbook/tinyplan/\nModDrv=RawGenBook\nCategory=And Bible\nAndBibleProvidesReadingPlan=tinyplan.properties\nPhosReadingPlanText=tinyplan.json\nVersification=KJV\nEncoding=UTF-8\nDescription=Fixture reading plan\n' > mods.d/tinyplan.conf

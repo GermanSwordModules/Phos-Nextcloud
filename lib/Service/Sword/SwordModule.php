@@ -166,6 +166,26 @@ final class SwordModule {
 		return $out;
 	}
 
+	/** The module's AndBible reading plan, or null. */
+	public function readingPlan(): ?array {
+		$c = $this->conf;
+		$file = $c->get('AndBibleProvidesReadingPlan');
+		if ($file === '' || str_contains($file, '/')) {
+			return null;
+		}
+		$dir = $c->dataPath();
+		$dir = str_ends_with($dir, '/') ? $dir : substr($dir, 0, (int)strrpos($dir, '/') + 1);
+		$props = $this->fs->read($dir . $file, 0, $this->fs->size($dir . $file));
+		if ($props === '') {
+			throw new SwordException('reading plan file is not on the server');
+		}
+		$comp = $c->get('PhosReadingPlanText');
+		$compText = $comp !== '' && !str_contains($comp, '/') ? $this->fs->read($dir . $comp, 0, $this->fs->size($dir . $comp)) : '';
+		return ReadingPlan::parse($this->utf8($props),
+			strcasecmp(trim($c->get('AndBibleReadingPlanDateBased')), 'true') === 0,
+			$compText !== '' ? $this->utf8($compText) : null);
+	}
+
 	/** Summary for module lists. */
 	public function info(): array {
 		$c = $this->conf;
@@ -181,6 +201,7 @@ final class SwordModule {
 			'options' => $c->all('GlobalOptionFilter'),
 			'ciphered' => $this->ciphered(),
 			'locked' => $this->locked(),
+			'readingPlan' => $c->get('AndBibleProvidesReadingPlan') !== '',
 		];
 	}
 }

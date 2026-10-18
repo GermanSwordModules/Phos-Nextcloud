@@ -59,6 +59,11 @@ class ReaderController extends OCSController {
 	}
 
 	#[NoAdminRequired]
+	public function plan(string $module, ?string $collection = null): DataResponse {
+		return $this->run(fn () => $this->modules->plan($this->uid(), $module, $collection));
+	}
+
+	#[NoAdminRequired]
 	public function entry(string $module, string $key, ?string $collection = null): DataResponse {
 		return $this->run(function () use ($module, $key, $collection) {
 			$text = $this->modules->dictEntry($this->uid(), $module, $key, $collection);
