@@ -10,6 +10,9 @@ desktop, phos-mobile and the web UI (Nextcloud → Phos), with offline-safe merg
 
 Requires Nextcloud 30–34, PHP ≥ 8.1. Pure PHP, no external services.
 
+Install: `phos-<version>.tar.gz` from the GitHub releases (later the Nextcloud App Store) into
+`custom_apps/`, then `occ app:enable phos`. Building and publishing: [docs/release.md](docs/release.md).
+
 ## Development
 
 ```sh

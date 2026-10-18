@@ -53,7 +53,7 @@
 
 		<NcEmptyContent v-if="!bibles.length"
 			:name="t('phos', 'No Bible on the server yet')"
-			:description="t('phos', 'Bibles appear here once Phos Desktop has synced its modules (Settings → Nextcloud → Modules).')" />
+			:description="t('phos', 'Bibles appear here once you store them online in Phos Desktop (library → right-click a module → “Online speichern (Nextcloud)”).')" />
 		<NcEmptyContent v-else-if="error" :name="t('phos', 'This text cannot be shown')" :description="error" />
 		<div v-else-if="loading" class="bible__loading">
 			<NcLoadingIcon :size="32" />

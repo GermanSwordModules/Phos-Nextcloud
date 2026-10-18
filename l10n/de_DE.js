@@ -58,7 +58,7 @@ OC.L10N.register(
         "Next chapter": "Nächstes Kapitel",
         "Verse per line": "Vers pro Zeile",
         "No Bible on the server yet": "Noch keine Bibel auf dem Server",
-        "Bibles appear here once Phos Desktop has synced its modules (Settings → Nextcloud → Modules).": "Bibeln erscheinen hier, sobald Phos Desktop seine Module abgeglichen hat (Einstellungen → Nextcloud → Module).",
+        "Bibles appear here once you store them online in Phos Desktop (library → right-click a module → “Online speichern (Nextcloud)”).": "Bibeln erscheinen hier, sobald du sie in Phos Desktop online speicherst (Bibliothek → Rechtsklick auf ein Modul → „Online speichern (Nextcloud)“).",
         "This text cannot be shown": "Dieser Text kann nicht angezeigt werden",
         "Bookmark / note": "Lesezeichen / Notiz",
         "see verse {v}": "siehe Vers {v}",

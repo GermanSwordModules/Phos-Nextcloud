@@ -1,6 +1,6 @@
 {
 	"name": "phos",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"private": true,
 	"description": "Phos web frontend (Nextcloud app)",
 	"license": "AGPL-3.0-or-later",

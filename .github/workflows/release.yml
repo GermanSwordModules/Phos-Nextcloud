@@ -1,0 +1,41 @@
+name: Release
+# Tag vX.Y.Z (must match appinfo/info.xml) → app archive as GitHub release asset, and — once the
+# secrets APP_PRIVATE_KEY and APPSTORE_TOKEN exist — the same archive on apps.nextcloud.com.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build
+      - run: dev/release.sh
+        env:
+          SKIP_NPM: 1
+      - id: v
+        run: echo "ver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/phos-*.tar.gz
+          generate_release_notes: true
+      - name: Nextcloud App Store
+        if: env.APPSTORE_TOKEN != ''
+        uses: nextcloud-releases/nextcloud-appstore-push-action@v1
+        with:
+          app_name: phos
+          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          download_url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/phos-${{ steps.v.outputs.ver }}.tar.gz
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
