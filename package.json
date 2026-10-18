@@ -1,6 +1,6 @@
 {
 	"name": "phos",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"private": true,
 	"description": "Phos web frontend (Nextcloud app)",
 	"license": "AGPL-3.0-or-later",
@@ -16,7 +16,7 @@
 		"extends @nextcloud/browserslist-config"
 	],
 	"engines": {
-		"node": ">=20"
+		"node": ">=22"
 	},
 	"dependencies": {
 		"@mdi/js": "^7.4.47",
