@@ -17,7 +17,7 @@
 				label="label" />
 			<form class="bible__goto" @submit.prevent="gotoInput">
 				<NcTextField v-model="refInput"
-					:label="t('phos', 'Go to (e.g. Joh 3,16)')"
+					:label="t('phos', 'Go to or search (e.g. Joh 3,16)')"
 					:error="refError"
 					:show-trailing-button="!!refInput"
 					trailing-button-icon="arrowEnd"
@@ -88,6 +88,9 @@
 							class="bible__vnum"
 							:title="t('phos', 'Bookmark / note')"
 							:data-verse="v">{{ v }}</button>
+						<span v-if="c.verses[v]?.from"
+							class="bible__from"
+							:title="t('phos', 'Counted differently in {module}', { module: c.module })">{{ c.verses[v].from }}</span>
 						<span v-if="c.verses[v]?.html" v-html="c.verses[v].html" />
 						<span v-else-if="c.verses[v]?.linkedTo" class="bible__linked">{{ t('phos', 'see verse {v}', { v: c.verses[v].linkedTo }) }}</span>
 						<button v-if="noteVerses.has(v) && c === columns[0]"
@@ -142,7 +145,7 @@ import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef, registerBookName } from '../bible/books.js'
 import {
 	bibles, commentaries, modules, getBooks, getChapter, getEntry, defaultBible, defaultCommentary, prefs, lang,
-	bookmarksIn, labels,
+	bookmarksIn, labels, resumePosition, rememberPosition,
 } from '../services/phos.js'
 import { iconPrev, iconNext } from '../icons.js'
 
@@ -268,20 +271,34 @@ async function load() {
 		books.value = info.books
 		info.books.forEach(b => registerBookName(b.osis, b.name))
 		if (!book.value || !info.books.some(b => b.osis === book.value)) {
-			const start = info.books.find(b => b.osis === (prefs.get('lastBook', null))) || info.books[0]
+			// continue where the user last read, here or on the desktop — in
+			// that Bible, when none is asked for and it is on the server
+			const last = resumePosition()
+			if (!isCommentary.value && !route.params.module && last?.module && last.module !== moduleName.value
+				&& ownModules.value.some(m => m.name === last.module && !m.locked)) {
+				router.replace({ name: routeName.value, params: { module: last.module }, query: route.query })
+				return
+			}
+			const start = info.books.find(b => b.osis === last?.book) || info.books[0]
 			if (!start) {
 				throw new Error(t('phos', 'The module has no books.'))
 			}
-			router.replace({ name: routeName.value, params: { module: moduleName.value, book: start.osis, chapter: prefs.get('lastChapter', 1) }, query: route.query })
+			const c = start.osis === last?.book && last.chapter <= start.verses.length ? last.chapter : 1
+			const query = { ...route.query }
+			if (start.osis === last?.book && last.verse > 1 && !query.v) {
+				query.at = last.verse   // scroll there, no selection
+			}
+			router.replace({ name: routeName.value, params: { module: moduleName.value, book: start.osis, chapter: c }, query })
 			return
 		}
-		prefs.set('lastBook', book.value)
-		prefs.set('lastChapter', chapter.value)
 		const names = [moduleName.value, parallelName.value].filter(Boolean)
+		// the parallel text follows the main module's verse numbering (sword's mapping tables)
+		const system = info.versification
 		const cols = await Promise.all(names.map(async name => {
 			const meta = modules.value.find(m => m.name === name)
+			const as = name !== moduleName.value && meta?.versification && meta.versification !== system ? system : ''
 			try {
-				return column(name, meta, await getChapter(name, book.value, chapter.value))
+				return column(name, meta, await getChapter(name, book.value, chapter.value, as))
 			} catch (e) {
 				if (name === moduleName.value) {
 					throw e
@@ -300,6 +317,8 @@ async function load() {
 		if (v) {
 			selection.value = { from: v, to: v }
 			textEl.value?.querySelector(`[data-v="${v}"]`)?.scrollIntoView({ block: 'center' })
+		} else if (Number(route.query.at)) {
+			scrollToVerse(Number(route.query.at))
 		} else {
 			const sc = textEl.value?.closest('#app-content-vue, .app-content')
 			if (sc) {
@@ -312,6 +331,18 @@ async function load() {
 			loading.value = false
 		}
 	}
+}
+
+/** "Ps.22.0-1" → "Ps 22,1" (verse 0 = the psalm title, shown with verse 1) */
+function osisLabel(osis) {
+	const m = /^([^.]+)\.(\d+)\.(\d+)(?:-(\d+))?$/.exec(osis)
+	if (!m) {
+		return osis
+	}
+	const c = Number(m[2])
+	const v1 = Number(m[3]) || 1
+	const v2 = Number(m[4] || 0)
+	return formatRef({ book: m[1], c1: c, v1, c2: c, v2: v2 > v1 ? v2 : 0 }, lang)
 }
 
 function column(name, meta, ch) {
@@ -336,11 +367,14 @@ function column(name, meta, ch) {
 			continue
 		}
 		verses[v] = keep(render(text, { sourceType: st }))
+		if (ch.refs?.[v]) {
+			verses[v].from = osisLabel(ch.refs[v])
+		}
 	}
 	return { module: name, rtl: meta?.direction === 'RtoL', intro, verses }
 }
 
-watch(() => [moduleName.value, book.value, chapter.value, parallelName.value, route.query.v, modules.value.length], load, { immediate: true })
+watch(() => [moduleName.value, book.value, chapter.value, parallelName.value, route.query.v, route.query.at, modules.value.length], load, { immediate: true })
 
 // ---------- bookmarks in this chapter ----------
 
@@ -433,12 +467,16 @@ async function showDict(module, key) {
 	}
 }
 
+/** a passage goes there, anything else is searched in this module */
 function gotoInput() {
-	const r = parseRef(refInput.value)
-	refError.value = !r
+	const text = refInput.value.trim()
+	const r = parseRef(text)
+	refError.value = false
 	if (r) {
 		refInput.value = ''
 		go({ book: r.book, chapter: r.c1, v: r.v1 || undefined })
+	} else if (text) {
+		router.push({ name: 'search', query: { q: text, m: moduleName.value } })
 	}
 }
 
@@ -446,6 +484,16 @@ function gotoInput() {
 
 let scroller = null
 let raf = 0
+/** the verse at the top, below the sticky navigation */
+function scrollToVerse(v) {
+	const row = textEl.value?.querySelector(`[data-v="${v}"]`)
+	const sc = textEl.value?.closest('#app-content-vue, .app-content')
+	const nav = textEl.value?.closest('.bible')?.querySelector('.bible__nav')
+	if (row && sc) {
+		sc.scrollTop += row.getBoundingClientRect().top - (nav ? nav.getBoundingClientRect().bottom : sc.getBoundingClientRect().top) - 4
+	}
+}
+
 function topVerse() {
 	if (!textEl.value || !scroller) {
 		return 1
@@ -463,7 +511,11 @@ function topVerse() {
 function report() {
 	raf = 0
 	if (book.value) {
-		emit('position', { module: moduleName.value, book: book.value, chapter: chapter.value, verse: selection.value?.from || topVerse() })
+		const p = { module: moduleName.value, book: book.value, chapter: chapter.value, verse: selection.value?.from || topVerse() }
+		if (!isCommentary.value) {
+			rememberPosition(p)
+		}
+		emit('position', p)
 	}
 }
 const onScroll = () => { raf ||= requestAnimationFrame(report) }
@@ -614,6 +666,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 		cursor: pointer;
 		margin-left: 4px;
 		color: var(--color-primary-element);
+	}
+
+	&__from {
+		font-size: 0.75em;
+		color: var(--color-text-maxcontrast);
+		margin-right: 4px;
+
+		&::before {
+			content: '(';
+		}
+
+		&::after {
+			content: ')';
+		}
 	}
 
 	&__linked {

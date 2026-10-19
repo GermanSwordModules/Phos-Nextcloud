@@ -37,6 +37,9 @@ return [
 		['name' => 'reader#keys', 'url' => '/api/v1/modules/{module}/keys', 'verb' => 'GET'],
 		['name' => 'reader#entry', 'url' => '/api/v1/modules/{module}/entry/{key}', 'verb' => 'GET', 'requirements' => ['key' => '.+']],
 		['name' => 'reader#toc', 'url' => '/api/v1/modules/{module}/toc', 'verb' => 'GET'],
+		['name' => 'reader#sermons', 'url' => '/api/v1/sermons/{book}/{chapter}', 'verb' => 'GET'],
+		['name' => 'reader#media', 'url' => '/api/v1/media/{book}/{chapter}', 'verb' => 'GET'],
+		['name' => 'reader#search', 'url' => '/api/v1/modules/{module}/search', 'verb' => 'GET'],
 		['name' => 'reader#bookEntry', 'url' => '/api/v1/modules/{module}/book', 'verb' => 'GET'],
 	],
 ];

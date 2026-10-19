@@ -2,6 +2,10 @@
 	<div class="reading">
 		<BibleView class="reading__bible" @position="p => pos = p" />
 		<aside class="reading__side" :aria-label="t('phos', 'Bible reading')">
+			<section v-if="desktopPositions.length" class="reading__section">
+				<h3>{{ t('phos', 'Continue reading') }}</h3>
+				<ContinueReading :bible="route.params.module || defaultBible()" />
+			</section>
 			<section class="reading__section">
 				<h3>{{ t('phos', 'Reading plan') }}</h3>
 				<ReadingPlan compact @open="openPassage" />
@@ -9,6 +13,10 @@
 			<section class="reading__section">
 				<h3>{{ t('phos', 'Commentary') }}</h3>
 				<CommentaryTeaser :book="pos?.book" :chapter="pos?.chapter || 1" :verse="pos?.verse || 1" @ref="openRef" />
+			</section>
+			<section v-show="mediaCount" class="reading__section">
+				<h3>{{ t('phos', 'Pictures and maps') }}</h3>
+				<MediaTiles :book="pos?.book" :chapter="pos?.chapter || 1" @count="n => mediaCount = n" />
 			</section>
 			<section class="reading__section">
 				<h3>{{ t('phos', 'Sermons') }}</h3>
@@ -26,8 +34,10 @@ import BibleView from './BibleView.vue'
 import ReadingPlan from '../components/ReadingPlan.vue'
 import CommentaryTeaser from '../components/CommentaryTeaser.vue'
 import SermonList from '../components/SermonList.vue'
+import ContinueReading from '../components/ContinueReading.vue'
+import MediaTiles from '../components/MediaTiles.vue'
 import { parseRef } from '../bible/books.js'
-import { defaultBible } from '../services/phos.js'
+import { defaultBible, desktopPositions } from '../services/phos.js'
 
 /**
  * Start page, like the desktop's Bible reading view: the Bible on the left,
@@ -38,6 +48,7 @@ import { defaultBible } from '../services/phos.js'
 const route = useRoute()
 const router = useRouter()
 const pos = ref(null)
+const mediaCount = ref(0)
 
 function openPassage(p) {
 	const query = p.v1 ? { v: p.v1 } : {}

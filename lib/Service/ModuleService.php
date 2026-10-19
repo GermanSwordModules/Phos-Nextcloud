@@ -8,10 +8,15 @@ use OCA\Phos\Service\Sword\Conf;
 use OCA\Phos\Service\Sword\NodeModuleFiles;
 use OCA\Phos\Service\Sword\SwordException;
 use OCA\Phos\Service\Sword\SwordModule;
+use OCA\Phos\Service\Sword\Versification;
 use OCA\Phos\Sync\Record;
 use OCA\Phos\Sync\RecordStore;
+use OCA\Phos\Service\Sword\LeadIndex;
+use OCA\Phos\Service\Sword\SearchIndex;
 use OCP\Files\Folder;
+use OCP\Files\IAppData;
 use OCP\Files\IRootFolder;
+use OCP\Files\NotFoundException;
 use OCP\ICache;
 use OCP\ICacheFactory;
 
@@ -22,12 +27,16 @@ use OCP\ICacheFactory;
  * moduleKey records, never from a share.
  */
 class ModuleService {
+	/** bump when what the reader returns changes */
+	private const CACHE_VERSION = 2;
+
 	private ICache $cache;
 
 	public function __construct(
 		private RecordStore $store,
 		private IRootFolder $root,
 		ICacheFactory $caches,
+		private IAppData $appData,
 	) {
 		$this->cache = $caches->createDistributed('phos-sword');
 	}
@@ -146,8 +155,12 @@ class ModuleService {
 		return ['versification' => $v->name, 'books' => $books];
 	}
 
-	public function chapter(string $uid, string $name, string $book, int $chapter, ?string $collection = null): array {
+	/** $as: the versification the caller counts in (parallel texts), '' = the module's own */
+	public function chapter(string $uid, string $name, string $book, int $chapter, ?string $collection = null, string $as = ''): array {
 		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		if ($as !== '' && in_array($as, Versification::names(), true)) {
+			return $this->cached($r, "c/$book/$chapter/$as", fn () => $this->open($uid, $r)->chapterAs($book, $chapter, $as), $uid);
+		}
 		return $this->cached($r, "c/$book/$chapter", fn () => $this->open($uid, $r)->chapter($book, $chapter), $uid);
 	}
 
@@ -178,6 +191,223 @@ class ModuleService {
 	}
 
 	/**
+	 * Full-text search in a Bible or commentary (W-4). The index is built on
+	 * the first search after a module (re)upload and kept in the app data,
+	 * one file per manifest revision (and cipher key).
+	 * @param list<string> $books OSIS ids to search in, [] = all; "OT"/"NT" for a testament
+	 * @return array<string, mixed>
+	 */
+	public function search(string $uid, string $name, string $query, string $mode = 'all', array $books = [],
+		int $offset = 0, int $limit = 50, ?string $collection = null): array {
+		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		$m = $this->open($uid, $r);
+		if ($m->kind !== SwordModule::BIBLE && $m->kind !== SwordModule::COMMENTARY) {
+			throw new SwordException('only Bibles and commentaries can be searched');
+		}
+		$v11n = $m->versification();
+		$want = null;
+		if ($books) {
+			$want = [];
+			foreach ($books as $b) {
+				if ($b === 'OT' || $b === 'NT') {
+					foreach ($v11n->books as $i => $bk) {
+						if ($bk['t'] === ($b === 'OT' ? 1 : 2)) {
+							$want[] = $i;
+						}
+					}
+				} elseif (($i = $v11n->bookIndex($b)) !== null) {
+					$want[] = $i;
+				}
+			}
+		}
+		$index = $this->index($uid, $r, $m);
+		$t0 = microtime(true);
+		$found = $index->find($query, $mode, $want);
+		if (isset($found['error'])) {
+			throw new SwordException($found['error']);
+		}
+		$perBook = [];
+		foreach ($found['positions'] as $p) {
+			$osis = $v11n->books[$index->verseAt($p)[0]]['osis'];
+			$perBook[$osis] = ($perBook[$osis] ?? 0) + 1;
+		}
+		$hits = [];
+		foreach (array_slice($found['positions'], $offset, $limit) as $p) {
+			[$b, $c, $v] = $index->verseAt($p);
+			$hits[] = ['book' => $v11n->books[$b]['osis'], 'chapter' => $c, 'verse' => $v, 'text' => $m->verse($b, $c, $v)];
+		}
+		return [
+			'total' => count($found['positions']),
+			'perBook' => $perBook,
+			'terms' => $found['terms'],
+			'strongs' => $found['strongs'],
+			'hits' => $hits,
+			'ms' => (int)round((microtime(true) - $t0) * 1000),
+		];
+	}
+
+	private function index(string $uid, Record $r, SwordModule $m): SearchIndex {
+		return $this->stored($uid, $r, 'search', SearchIndex::FORMAT,
+			fn () => SearchIndex::build($m), fn (string $d) => SearchIndex::fromString($d));
+	}
+
+	private function leads(string $uid, Record $r, SwordModule $m): LeadIndex {
+		return $this->stored($uid, $r, 'leads', LeadIndex::FORMAT,
+			fn () => LeadIndex::build($m), fn (string $d) => LeadIndex::fromString($d));
+	}
+
+	/**
+	 * An index of a module kept in the app data: one file per manifest
+	 * revision (and cipher key); building a new one removes the module's
+	 * older ones. The file name starts with a hash of the module, so that
+	 * works without any bookkeeping.
+	 */
+	private function stored(string $uid, Record $r, string $folder, int $format, callable $build, callable $parse): object {
+		$mod = substr(sha1($r->collection . '/' . $r->key), 0, 20);
+		$id = $r->rev . '/' . $format;
+		if ($r->payload->cipher ?? false) {
+			$id .= '/' . sha1((string)$this->cipherKey($uid, $this->name($r)));
+		}
+		$file = $mod . '-' . substr(sha1($id), 0, 20) . '.idx';
+		try {
+			$dir = $this->appData->getFolder($folder);
+		} catch (NotFoundException) {
+			$dir = $this->appData->newFolder($folder);
+		}
+		try {
+			$ix = $parse($dir->getFile($file)->getContent());
+			if ($ix !== null) {
+				return $ix;
+			}
+		} catch (\Throwable) {
+			// missing or unreadable: build it again
+		}
+		@set_time_limit(600);
+		$data = $build();
+		foreach ($dir->getDirectoryListing() as $f) {
+			if (str_starts_with($f->getName(), $mod . '-') && $f->getName() !== $file) {
+				try {
+					$f->delete();
+				} catch (\Throwable) {
+				}
+			}
+		}
+		try {
+			$dir->getFile($file)->putContent($data);
+		} catch (NotFoundException) {
+			$dir->newFile($file, $data);
+		}
+		return $parse($data) ?? throw new SwordException('index unreadable');
+	}
+
+	/**
+	 * Sermon and devotional books treating a chapter (the desktop's Bible
+	 * reading page, RenderSermonCardsHtml): books whose entries cite it in
+	 * their title or opening, and sermon commentaries' entries on it.
+	 * @param list<string> $names how the book may be written ("1. Mose", "Genesis")
+	 * @return list<array<string, mixed>>
+	 */
+	public function sermons(string $uid, string $osis, int $chapter, array $names, int $limit = 20): array {
+		$out = [];
+		$seen = [];
+		foreach ($this->manifests($uid) as $r) {
+			$name = $this->name($r);
+			if (isset($seen[$name]) || count($out) >= $limit) {
+				continue;
+			}
+			$seen[$name] = true;
+			$conf = new Conf((string)$r->payload->conf);
+			$kind = SwordModule::kindOf($conf->get('ModDrv'));
+			$hay = implode(' ', [$name, $conf->get('Description'), $conf->get('Category'), $conf->get('LCSH')]);
+			if (!self::looksLikeSermon($hay, $kind) || $conf->get('AndBibleProvidesReadingPlan') !== '') {
+				continue;
+			}
+			try {
+				$m = $this->open($uid, $r);
+				if ($m->locked()) {
+					continue;
+				}
+				$desc = $conf->get('Description') ?: $name;
+				if ($kind === SwordModule::GENBOOK) {
+					foreach ($this->leads($uid, $r, $m)->citing($names, $chapter, min(5, $limit - count($out))) as $hit) {
+						$out[] = ['module' => $name, 'description' => $desc, 'kind' => $kind] + $hit;
+					}
+				} elseif ($kind === SwordModule::COMMENTARY) {
+					$ch = $this->chapter($uid, $name, $osis, $chapter, $r->collection);
+					$n = 0;
+					foreach ($ch['verses'] as $v => $text) {
+						if ($text === '' || isset($ch['links'][$v]) || $n >= 5 || count($out) >= $limit) {
+							continue;
+						}
+						[$plain] = SearchIndex::plain($text, $m->sourceType());
+						$out[] = ['module' => $name, 'description' => $desc, 'kind' => $kind, 'verse' => (int)$v, 'lead' => mb_substr($plain, 0, 400)];
+						$n++;
+					}
+				}
+			} catch (SwordException) {
+				// unreadable or no such chapter there: no hits from it
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Pictures and maps showing a chapter: entries of picture and map
+	 * modules citing it, with their first picture (the desktop's keyword
+	 * fallback of the Bible reading page; its places-on-maps part needs the
+	 * map index, which only the desktop has).
+	 * @param list<string> $names
+	 * @return list<array<string, mixed>>
+	 */
+	public function media(string $uid, string $osis, int $chapter, array $names, int $limit = 12): array {
+		$out = [];
+		$seen = [];
+		foreach ($this->manifests($uid) as $r) {
+			$name = $this->name($r);
+			if (isset($seen[$name]) || count($out) >= $limit) {
+				continue;
+			}
+			$seen[$name] = true;
+			$conf = new Conf((string)$r->payload->conf);
+			if (SwordModule::kindOf($conf->get('ModDrv')) !== SwordModule::GENBOOK
+				|| !self::looksLikeMedia($conf->get('Category'), implode(' ', [$name, $conf->get('Description'), $conf->get('Category')]))) {
+				continue;
+			}
+			try {
+				$m = $this->open($uid, $r);
+				if ($m->locked()) {
+					continue;
+				}
+				foreach ($this->leads($uid, $r, $m)->citing($names, $chapter, min(8, $limit - count($out)), true) as $hit) {
+					$out[] = ['module' => $name, 'description' => $conf->get('Description') ?: $name] + $hit;
+				}
+			} catch (SwordException) {
+			}
+		}
+		return $out;
+	}
+
+	/** unit_facts LooksLikeMedia */
+	public static function looksLikeMedia(string $category, string $hay): bool {
+		return in_array(strtolower($category), ['maps', 'images'], true)
+			|| (bool)preg_match('/image|figure|bild|foto|photo|karte|graphic/u', mb_strtolower($hay));
+	}
+
+	/**
+	 * unit_facts LooksLikeSermon on name, description, category and LCSH.
+	 * Commentaries only by the narrower words: a "homiletic" or prayer
+	 * commentary would otherwise fill every chapter.
+	 */
+	public static function looksLikeSermon(string $hay, string $kind): bool {
+		$h = mb_strtolower($hay);
+		return match ($kind) {
+			SwordModule::GENBOOK => (bool)preg_match('/predigt|andacht|gebet|losung|sermon|devotion|prayer|homil/u', $h),
+			SwordModule::COMMENTARY => (bool)preg_match('/predigt|andacht|sermon|devotion/u', $h),
+			default => false,
+		};
+	}
+
+	/**
 	 * A picture of a module, as its text names it.
 	 * @return array{data:string,mime:string}
 	 */
@@ -205,7 +435,7 @@ class ModuleService {
 	 * reading the same files without that key.
 	 */
 	private function cached(Record $r, string $what, callable $make, string $uid): mixed {
-		$k = $r->collection . '/' . $r->key . '/' . $r->rev . '/' . $what;
+		$k = self::CACHE_VERSION . '/' . $r->collection . '/' . $r->key . '/' . $r->rev . '/' . $what;
 		if ($r->payload->cipher ?? false) {
 			$k .= '/' . sha1((string)$this->cipherKey($uid, $this->name($r)));
 		}

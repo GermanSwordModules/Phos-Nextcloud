@@ -54,8 +54,8 @@ class ReaderController extends OCSController {
 	}
 
 	#[NoAdminRequired]
-	public function chapter(string $module, string $book, int $chapter, ?string $collection = null): DataResponse {
-		return $this->run(fn () => $this->modules->chapter($this->uid(), $module, $book, $chapter, $collection));
+	public function chapter(string $module, string $book, int $chapter, ?string $collection = null, string $as = ''): DataResponse {
+		return $this->run(fn () => $this->modules->chapter($this->uid(), $module, $book, $chapter, $collection, $as));
 	}
 
 	#[NoAdminRequired]
@@ -84,6 +84,35 @@ class ReaderController extends OCSController {
 	#[NoAdminRequired]
 	public function bookEntry(string $module, string $path = '/', ?string $collection = null): DataResponse {
 		return $this->run(fn () => $this->modules->bookEntry($this->uid(), $module, $path, $collection));
+	}
+
+	/**
+	 * Sermon and devotional books on a chapter. names: how the book may be
+	 * written, "|" separated (the client knows the localized names).
+	 */
+	#[NoAdminRequired]
+	public function sermons(string $book, int $chapter, string $names = ''): DataResponse {
+		$list = array_values(array_filter(array_map('trim', explode('|', $names))));
+		$list[] = $book;
+		return $this->run(fn () => ['hits' => $this->modules->sermons($this->uid(), $book, $chapter, $list)]);
+	}
+
+	/** Pictures and maps citing a chapter (names as for sermons). */
+	#[NoAdminRequired]
+	public function media(string $book, int $chapter, string $names = ''): DataResponse {
+		$list = array_values(array_filter(array_map('trim', explode('|', $names))));
+		$list[] = $book;
+		return $this->run(fn () => ['hits' => $this->modules->media($this->uid(), $book, $chapter, $list)]);
+	}
+
+	/**
+	 * Full-text search (W-4). books: comma separated OSIS ids, OT, NT.
+	 * @param int<1, 200> $limit
+	 */
+	#[NoAdminRequired]
+	public function search(string $module, string $q = '', string $mode = 'all', string $books = '', int $offset = 0, int $limit = 50, ?string $collection = null): DataResponse {
+		return $this->run(fn () => $this->modules->search($this->uid(), $module, $q, $mode === 'any' ? 'any' : 'all',
+			array_values(array_filter(explode(',', $books))), max(0, $offset), max(1, min(200, $limit)), $collection));
 	}
 
 	/**

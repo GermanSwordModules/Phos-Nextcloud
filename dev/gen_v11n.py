@@ -2,9 +2,12 @@
 """Generates lib/Service/Sword/v11n.json from libsword's canon_*.h.
 
     python3 -I dev/gen_v11n.py <sword-source>/include > lib/Service/Sword/v11n.json
+    python3 -I dev/gen_v11n.py <sword-source>/include --maps > lib/Service/Sword/v11n-maps.json
 
-Run once per libsword release; the output is committed. Mapping tables
-(mappings_*) are not carried over yet: parallel texts align by number.
+Run once per libsword release; the output is committed. Systems with a
+mapping table (mappings_* in canon_*.h, rules towards KJVA) carry it as
+"map": {"extra": [osis…], "rules": [[book, c, v, vEnd, kjvaC, kjvaV, kjvaVEnd(, book2)]…]}
+in libsword's order (Versification::translate replays it), written by --maps.
 """
 import json
 import re
@@ -33,6 +36,30 @@ SYSTEMS = {
     'DarbyFr': ('otbooks', 'ntbooks', 'vm_darbyfr'),
     'Segond': ('otbooks', 'ntbooks', 'vm_segond'),
 }
+MAPPINGS = {
+    'NRSV': 'mappings_nrsv', 'Synodal': 'mappings_synodal', 'Vulg': 'mappings_vulg',
+    'Calvin': 'mappings_calvin', 'DarbyFr': 'mappings_darbyfr', 'Segond': 'mappings_segond',
+}
+
+
+def parse_mapping(body, nbooks):
+    """unsigned char mappings_x[] = {'E','p',0, …, 0, rules…, 0} → map dict."""
+    vals = [ord(t[1]) if t.startswith("'") else int(t) for t in re.findall(r"'[^']'|\d+", body)]
+    extra, i = [], 0
+    while vals[i] != 0:
+        j = vals.index(0, i)
+        extra.append(''.join(map(chr, vals[i:j])))
+        i = j + 1
+    i += 1
+    rules = []
+    while vals[i] != 0:
+        r = vals[i:i + 7]
+        i += 7
+        if r[0] > nbooks:      # rule for an extra book: 8th byte = target book
+            r.append(vals[i])
+            i += 1
+        rules.append(r)
+    return {'extra': extra, 'rules': rules}
 
 
 def strip_comments(s):
@@ -40,7 +67,7 @@ def strip_comments(s):
     return re.sub(r'//[^\n]*', '', s)
 
 
-def main(inc):
+def main(inc, want_maps=False):
     src = strip_comments(''.join(p.read_text(encoding='utf-8') for p in sorted(Path(inc).glob('canon*.h'))))
     books, vms = {}, {}
     for m in re.finditer(r'struct\s+sbook\s+(\w+)\[\]\s*=\s*\{(.*?)\};', src, re.S):
@@ -48,7 +75,8 @@ def main(inc):
         books[m.group(1)] = [[osis, name, int(ch)] for name, osis, _abbr, ch in rows if int(ch) > 0]
     for m in re.finditer(r'int\s+(vm\w*)\[\]\s*=\s*\{(.*?)\};', src, re.S):
         vms[m.group(1)] = [int(x) for x in re.findall(r'\d+', m.group(2))]
-    out = {}
+    maps = {m.group(1): m.group(2) for m in re.finditer(r'unsigned\s+char\s+(mappings_\w+)\[\]\s*=\s*\{(.*?)\};', src, re.S)}
+    out, mapped = {}, {}
     for name, (ot, nt, vm) in SYSTEMS.items():
         verses = vms[vm]
         need = sum(b[2] for b in books[ot] + books[nt])
@@ -59,10 +87,14 @@ def main(inc):
             for osis, bname, ch in arr:
                 sysbooks.append({'osis': osis, 'name': bname, 't': testament, 'v': verses[pos:pos + ch]})
                 pos += ch
+        if name in MAPPINGS:
+            mapped[name] = parse_mapping(maps[MAPPINGS[name]], len(sysbooks))
         out[name] = sysbooks
+    if want_maps:
+        out = mapped
     json.dump(out, sys.stdout, ensure_ascii=False, separators=(',', ':'))
     sys.stdout.write('\n')
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], '--maps' in sys.argv[2:])

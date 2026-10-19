@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"><osisText osisIDWork="TINYMAP" xml:lang="de"><header><work osisWork="TINYMAP"/></header>
+<div type="book" osisID="Galiläa"><p>Galiläa zur Zeit Jesu (Joh 3,22). <figure src="images/karte.png"/></p></div>
+<div type="book" osisID="Ohne Bild"><p>Joh 3 ohne Karte.</p></div>
+</osisText></osis>

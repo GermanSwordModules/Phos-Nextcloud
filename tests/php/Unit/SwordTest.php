@@ -129,6 +129,40 @@ class SwordTest extends TestCase {
 		$this->assertNull(self::module('tinyz')->readingPlan());
 	}
 
+	/** Vectors from libsword's VerseKey::positionFrom (dev/v11n_oracle.cpp). */
+	public function testVersificationMapping(): void {
+		$v = fn (string $n) => Versification::get($n);
+		$this->assertSame(['Ps', 22, 1, 1, false], $v('KJV')->mapTo($v('Synodal'), 'Ps', 23, 1));
+		$this->assertSame(['Ps', 3, 2, 2, false], $v('KJV')->mapTo($v('Synodal'), 'Ps', 3, 1));
+		$this->assertSame(['Ps', 23, 0, 1, false], $v('Synodal')->mapTo($v('KJV'), 'Ps', 22, 1));
+		// sword widens a range past the chapter end by one (kept: same as the desktop)
+		$this->assertSame(['Rev', 12, 18, 20, false], $v('KJV')->mapTo($v('NRSV'), 'Rev', 13, 1));
+		// via KJVA, and into a book of its own (Prayer of Azariah = Dan 3,24 ff. in the Synodal)
+		$this->assertSame(['Dan', 3, 24, 24, false], $v('KJVA')->mapTo($v('Synodal'), 'PrAzar', 1, 1));
+		$this->assertSame(['PrAzar', 1, 1, 1, false], $v('Synodal')->mapTo($v('KJVA'), 'Dan', 3, 24));
+		$this->assertSame(['Ps', 22, 1, 1, false], $v('German')->mapTo($v('Synodal'), 'Ps', 23, 1));
+		// no table: same numbers; no such book: null
+		$this->assertSame(['Ps', 23, 1, 1, false], $v('Luther')->mapTo($v('KJV'), 'Ps', 23, 1));
+		$this->assertNull($v('KJV')->mapTo($v('MT'), 'Matt', 1, 1));
+	}
+
+	public function testChapterInAnotherVersification(): void {
+		$m = self::module('tinysyn');
+		$ps23 = $m->chapterAs('Ps', 23, 'KJV');
+		$this->assertStringStartsWith('A Psalm of David. The LORD is my shepherd', $ps23['verses'][1]);
+		$this->assertStringStartsWith('He maketh me to lie down in green pastures.', $ps23['verses'][2]);
+		$this->assertSame([1 => 'Ps.22.1', 2 => 'Ps.22.2', 3 => 'Ps.22.3', 4 => 'Ps.22.4', 5 => 'Ps.22.5', 6 => 'Ps.22.6'], $ps23['refs']);
+		$this->assertSame('', $ps23['verses'][3]);
+		$ps3 = $m->chapterAs('Ps', 3, 'KJV');
+		$this->assertSame('LORD, how are they increased that trouble me!', $ps3['verses'][1]);
+		$this->assertSame('Ps.3.2', $ps3['refs'][1]);
+		// a verse whose mapped place is empty in the module: same number, if not shown elsewhere
+		$this->assertSame('', $m->chapterAs('Ps', 3, 'KJV')['verses'][3] ?? '');
+		// its own versification: the plain chapter
+		$this->assertSame([], $m->chapterAs('Ps', 22, 'Synodal')['refs']);
+		$this->assertSame($m->chapter('Ps', 22)['verses'], $m->chapterAs('Ps', 22, 'Synodal')['verses']);
+	}
+
 	public function testConfContinuationAndRepeats(): void {
 		$c = new Conf("[Mod]\nAbout=line one\\\nline two\nFeature=StrongsNumbers\nFeature=GreekDef\nDataPath=./modules/x/\n");
 		$this->assertSame('Mod', $c->name);

@@ -9,7 +9,8 @@ import { Hlc } from './hlc.js'
  * not yet confirmed; readers see pending over records. The outbox survives
  * reloads (storage); the records are pulled fresh on every start.
  */
-export const SYNC_TYPES = ['bookmark', 'label', 'planProgress', 'setting', 'sermon']   // sermon: read only
+// sermon, workspace: read only; readingPosition: books only (pos:mod:<module>)
+export const SYNC_TYPES = ['bookmark', 'label', 'planProgress', 'setting', 'sermon', 'workspace', 'readingPosition']
 
 const rk = (collection, type, key) => `${collection}\u0001${type}\u0001${key}`
 

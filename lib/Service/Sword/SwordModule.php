@@ -111,6 +111,17 @@ final class SwordModule {
 	}
 
 	/**
+	 * Every entry of a book in reading order: fn(path, markup). Stops after
+	 * $max entries (damaged trees can loop).
+	 */
+	public function eachEntry(callable $fn, int $max = 200000): void {
+		$t = $this->genBook();
+		for ($id = $t->nextOf(0), $n = 0; $id > 0 && $n < $max; $id = $t->nextOf($id), $n++) {
+			$fn($t->pathOf($id), $this->utf8(Text::prep($t->text($id))));
+		}
+	}
+
+	/**
 	 * One entry of a book with its neighbours in reading order. The root
 	 * ("/") stands for the first entry.
 	 * @return array{path:string,name:string,text:string,prev:?string,next:?string,trail:list<string>,children:bool}
@@ -214,6 +225,129 @@ final class SwordModule {
 			'intro' => $read($chapter, 0),
 			'verses' => $verses,
 			'links' => $links,
+		];
+	}
+
+	public function sourceType(): string {
+		return $this->conf->get('SourceType', 'Plain') ?: 'Plain';
+	}
+
+	/**
+	 * Every verse with text, in canonical order: fn(bookIndex, chapter,
+	 * verse, markup). An entry that stands for several verses (commentaries)
+	 * is passed once, for its first verse.
+	 */
+	public function eachVerse(callable $fn): void {
+		$v11n = $this->versification();
+		$vs = $this->verseStore();
+		foreach ($this->books() as $b) {
+			$prevRef = '';
+			foreach ($v11n->books[$b]['v'] as $ci => $n) {
+				for ($v = 1; $v <= $n; $v++) {
+					[$t, $i] = $v11n->locate($b, $ci + 1, $v);
+					$ref = $vs->ref($t, $i);
+					if ($ref === '' || $ref === $prevRef) {
+						continue;
+					}
+					$prevRef = $ref;
+					$text = $this->utf8(Text::prep($vs->entry($t, $i)));
+					if ($text !== '') {
+						$fn($b, $ci + 1, $v, $text);
+					}
+				}
+			}
+		}
+	}
+
+	/** Markup of one verse ('' when empty). */
+	public function verse(int $book, int $chapter, int $verse): string {
+		$loc = $this->versification()->locate($book, $chapter, $verse);
+		return $loc === null ? '' : $this->utf8(Text::prep($this->verseStore()->entry($loc[0], $loc[1])));
+	}
+
+	/**
+	 * One chapter of another versification, filled from this module: each
+	 * verse holds the text sword maps it to here (a parallel text next to a
+	 * Bible of another system). refs: verse → where the text comes from,
+	 * when that is not the same verse; links: verse → the verse that
+	 * already shows the same text.
+	 * @return array{book:string,chapter:int,intro:string,bookIntro:string,verses:array<int,string>,links:array<int,int>,refs:array<int,string>}
+	 */
+	public function chapterAs(string $osis, int $chapter, string $system): array {
+		$own = $this->versification();
+		$src = Versification::get($system);
+		if ($src === $own) {
+			return $this->chapter($osis, $chapter) + ['refs' => []];
+		}
+		$b = $src->bookIndex($osis);
+		if ($b === null || $chapter < 1 || $chapter > $src->chapterCount($b)) {
+			throw new SwordException("no such chapter: $osis $chapter");
+		}
+		$vs = $this->verseStore();
+		$read = function (string $book, int $c, int $v) use ($own, $vs): string {
+			$bi = $own->bookIndex($book);
+			$loc = $bi === null ? null : $own->locate($bi, $c, $v);
+			return $loc === null ? '' : $this->utf8(Text::prep($vs->entry($loc[0], $loc[1])));
+		};
+		$verses = [];
+		$links = [];
+		$refs = [];
+		$seen = [];
+		$used = [];
+		$introOf = null;
+		for ($v = 1, $n = $src->verseCount($b, $chapter); $v <= $n; $v++) {
+			$m = $src->mapTo($own, $osis, $chapter, $v);
+			if ($m === null || $m[4]) {
+				continue;   // not in this module's versification
+			}
+			[$ob, $oc, $ov, $oe] = $m;
+			$introOf ??= [$ob, $oc];
+			$end = min($oe, $own->verseCount((int)$own->bookIndex($ob), $oc));
+			$at = "$ob.$oc.$ov";
+			if (isset($seen[$at])) {
+				$links[$v] = $seen[$at];
+				$verses[$v] = $verses[$seen[$at]];
+				continue;
+			}
+			$seen[$at] = $v;
+			$parts = [];
+			for ($x = $ov; $x <= max($ov, $end); $x++) {
+				$parts[] = $read($ob, $oc, $x);
+			}
+			for ($x = $ov; $x <= max($ov, $end); $x++) {
+				$used["$ob.$oc.$x"] = true;
+			}
+			$verses[$v] = trim(implode(' ', $parts));
+			if ($ob !== $osis || $oc !== $chapter || $ov !== $v || $end > $ov) {
+				$refs[$v] = "$ob.$oc.$ov" . ($end > $ov ? "-$end" : '');
+			}
+		}
+		// Some modules declare a versification their text does not follow
+		// (GerElb1905: "NRSV", Rev 12,18 empty and its words in 13,1). Where
+		// the mapped verse is empty, the same number is taken — unless that
+		// verse is shown elsewhere already.
+		$ownB = $own->bookIndex($osis);
+		for ($v = 1, $n = $src->verseCount($b, $chapter); $ownB !== null && $v <= $n; $v++) {
+			if (($verses[$v] ?? '') !== '' || isset($links[$v]) || isset($used["$osis.$chapter.$v"])) {
+				continue;
+			}
+			$text = $read($osis, $chapter, $v);
+			if ($text !== '') {
+				$verses[$v] = $text;
+				unset($refs[$v]);
+				$used["$osis.$chapter.$v"] = true;
+			}
+		}
+		[$ib, $ic] = $introOf ?? [$osis, $chapter];
+		return [
+			'book' => $osis,
+			'chapter' => $chapter,
+			'bookIntro' => $chapter === 1 ? $read($ib, 0, 0) : '',
+			// a chapter title that sword maps onto verse 1 is shown there already
+			'intro' => isset($seen["$ib.$ic.0"]) ? '' : $read($ib, $ic, 0),
+			'verses' => $verses,
+			'links' => $links,
+			'refs' => $refs,
 		];
 	}
 

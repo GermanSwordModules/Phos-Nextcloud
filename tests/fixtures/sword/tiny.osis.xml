@@ -11,6 +11,17 @@
 <verse osisID="Gen.1.3">And God said, Let there be light: and there was light.</verse>
 </chapter>
 </div>
+<div type="book" osisID="Ps">
+<chapter osisID="Ps.3">
+<title type="psalm" canonical="true">A Psalm of David, when he fled from Absalom his son.</title>
+<verse osisID="Ps.3.1">LORD, how are they increased that trouble me!</verse>
+</chapter>
+<chapter osisID="Ps.23">
+<title type="psalm" canonical="true">A Psalm of David.</title>
+<verse osisID="Ps.23.1">The LORD is my shepherd; I shall not want.</verse>
+<verse osisID="Ps.23.2">He maketh me to lie down in green pastures.</verse>
+</chapter>
+</div>
 <div type="book" osisID="John">
 <chapter osisID="John.3">
 <verse osisID="John.3.16"><q who="Jesus" marker="">For God so loved the world, that he gave his only begotten Son</q> (größte Liebe).</verse>

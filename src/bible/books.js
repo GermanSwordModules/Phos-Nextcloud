@@ -54,7 +54,7 @@ const ALIASES = {
 	Hag: 'Haggai|Hag|Hgg|Hg',
 	Zech: 'Sacharja|Sach|Sac|Zechariah|Zech|Zec|Za',
 	Mal: 'Maleachi|Mal|Malachi|Ml',
-	Matt: 'Matthäus|Matthaeus|Mt|Matt|Mat|MtEv|Matthew',
+	Matt: 'Matthäus|Matthaeus|Matth|Mt|Matt|Mat|MtEv|Matthew',
 	Mark: 'Markus|Mk|Mark|Mar|Mr|MkEv',
 	Luke: 'Lukas|Lk|Luk|Luke|Lu|LkEv|Lukasevangelium',
 	John: 'Johannes|Joh|Jh|John|Jn|Jo|JohEv|Johannesevangelium',
@@ -137,6 +137,11 @@ export function bookName(osis, lang = 'de', englishName = null) {
 		return ALIASES[osis].split('|')[0]
 	}
 	return englishName || ALIASES[osis]?.split('|').find(a => /^[A-Z1-4][a-z ]/.test(a) && a.length > 3) || osis
+}
+
+/** Every way a book is written (German and English names, abbreviations), for finding citations. */
+export function bookNames(osis) {
+	return [...new Set([...(ALIASES[osis] || '').split('|').filter(Boolean), osis])]
 }
 
 /** Books whose alias starts with what was typed (suggestions). */

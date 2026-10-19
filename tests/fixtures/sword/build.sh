@@ -16,6 +16,9 @@ mk tinyz4   zText4    ztext   -z z -s 4
 mk tinyraw  RawText   rawtext
 mk tinyraw4 RawText4  rawtext -s 4
 mk tinyzc   zText     ztext   -z z -c 'Fixture-Key-1'
+# Synodal numbering (Psalms as in the LXX): parallel texts across versifications
+mkdir -p modules/texts/ztext/tinysyn
+osis2mod modules/texts/ztext/tinysyn tinysyn.osis.xml -z z -v Synodal >/dev/null
 conf() {  # conf <Name> <driver> <dir> [extra lines]
   { printf '[%s]\nDataPath=./modules/texts/%s/%s/\nModDrv=%s\nSourceType=OSIS\nEncoding=UTF-8\nLang=en\nVersification=KJV\nDescription=Fixture %s\n' \
       "$(echo $1 | tr a-z A-Z)" "$3" "$1" "$2" "$1"; [ -n "$4" ] && printf '%s\n' "$4"; true; } > mods.d/$1.conf
@@ -28,6 +31,9 @@ conf tinyraw RawText rawtext
 conf tinyraw4 RawText4 rawtext
 conf tinyzc zText ztext 'CompressType=ZIP
 BlockType=BOOK'
+conf tinysyn zText ztext 'CompressType=ZIP
+BlockType=BOOK'
+sed -i 's/^Versification=KJV$/Versification=Synodal/' mods.d/tinysyn.conf
 for d in rawld:'' rawld4:-4 zld:'-z z'; do
   drv=${d%%:*}; opt=${d#*:}
   mkdir -p modules/lexdicts/$drv/tinylex
@@ -46,4 +52,9 @@ printf '[TINYPLAN]\nDataPath=./modules/genbook/rawgenbook/tinyplan/\nModDrv=RawG
 mkdir -p modules/genbook/rawgenbook/tinybook/images
 (cd modules/genbook/rawgenbook/tinybook && xml2gbs -fO ../../../../tinybook.osis.xml tinybook >/dev/null)
 echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC' | base64 -d > modules/genbook/rawgenbook/tinybook/images/bild.png
-printf '[TINYBOOK]\nDataPath=./modules/genbook/rawgenbook/tinybook/tinybook\nModDrv=RawGenBook\nSourceType=OSIS\nEncoding=UTF-8\nLang=de\nCategory=Generic Books\nDescription=Fixture book\n' > mods.d/tinybook.conf
+printf '[TINYBOOK]\nDataPath=./modules/genbook/rawgenbook/tinybook/tinybook\nModDrv=RawGenBook\nSourceType=OSIS\nEncoding=UTF-8\nLang=de\nCategory=Generic Books\nLCSH=Sermons, German.\nDescription=Fixture book\n' > mods.d/tinybook.conf
+# Map module (picture per entry) for the start page's pictures and maps
+mkdir -p modules/genbook/rawgenbook/tinymap/images
+(cd modules/genbook/rawgenbook/tinymap && xml2gbs -fO ../../../../tinymap.osis.xml tinymap >/dev/null)
+cp modules/genbook/rawgenbook/tinybook/images/bild.png modules/genbook/rawgenbook/tinymap/images/karte.png
+printf '[TINYMAP]\nDataPath=./modules/genbook/rawgenbook/tinymap/tinymap\nModDrv=RawGenBook\nSourceType=OSIS\nEncoding=UTF-8\nLang=de\nCategory=Maps\nDescription=Fixture map\n' > mods.d/tinymap.conf

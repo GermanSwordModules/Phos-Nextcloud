@@ -59,6 +59,7 @@ import NoteEditor from '../components/NoteEditor.vue'
 import PassageText from '../components/PassageText.vue'
 import { bookmarks, labels, labelDisplay, setNote, defaultBible, bibles, lang, prefs } from '../services/phos.js'
 import { formatRef, KJV_ORDER, normalize } from '../bible/books.js'
+import { htmlText } from '../search/notes.js'
 
 const props = defineProps({ notesOnly: { type: Boolean, default: false } })
 const router = useRouter()
@@ -101,7 +102,8 @@ const filtered = computed(() => {
 		if (lf && !(bm.collection === lf.collection && bm.labelNames?.includes(lf.name))) {
 			return false
 		}
-		return !q || normalize(refOf(bm) + ' ' + (bm.noteMd || '') + ' ' + (bm.snippetText || '')).includes(q)
+		// desktop notes may only have the HTML from their RTF
+		return !q || normalize(refOf(bm) + ' ' + (bm.noteMd || htmlText(bm.noteHtml)) + ' ' + (bm.snippetText || '')).includes(q)
 	})
 	const pos = bm => (KJV_ORDER.indexOf(bm.bookOsis) + 1 || 999) * 1e6 + bm.chap * 1e3 + bm.vStart
 	return sort.value.id === 'new'

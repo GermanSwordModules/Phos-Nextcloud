@@ -81,7 +81,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import TextPopover from '../components/TextPopover.vue'
 import { useTextPopover } from '../components/useNotes.js'
-import { modules, getToc, getBookEntry, prefs, defaultBible, pictureUrl } from '../services/phos.js'
+import { modules, getToc, getBookEntry, prefs, defaultBible, pictureUrl, bookPosition, setBookPosition } from '../services/phos.js'
 import { render } from '../bible/render.js'
 import { parseRef } from '../bible/books.js'
 import { iconPrev, iconNext, iconExpand } from '../icons.js'
@@ -101,7 +101,9 @@ const moduleSel = computed({
 	get: () => options.value.find(o => o.id === moduleName.value) || null,
 	set: o => { prefs.set('book', o.id); router.push({ name: 'book', params: { module: o.id } }) },
 })
-const path = computed(() => typeof route.query.e === 'string' && route.query.e ? route.query.e : '/')
+const asked = computed(() => typeof route.query.e === 'string' && route.query.e ? route.query.e : '')
+// no entry asked for: where the user is reading (synced with the desktop)
+const path = computed(() => asked.value || (moduleName.value && bookPosition(moduleName.value)) || '/')
 
 // ---------- contents ----------
 
@@ -180,6 +182,9 @@ watch(() => [moduleName.value, path.value], async ([name, p]) => {
 	try {
 		const e = await getBookEntry(name, p)
 		entry.value = e
+		if (asked.value) {
+			setBookPosition(name, e.path)
+		}
 		// open the way to the entry in the contents
 		for (const tp of e.trail) {
 			await loadKids(tp)

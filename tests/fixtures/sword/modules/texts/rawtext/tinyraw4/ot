@@ -4,3 +4,9 @@
 <w lemma="strong:H07225">In the beginning</w> <w lemma="strong:H0430">God</w> created the heaven and the earth.
 And the earth was without form, and void; and darkness <note n="a" type="study">Or, upon the face of the deep.</note>was upon the face of the deep.
 And God said, Let there be light: and there was light. <chapter eID="gen2" osisID="Gen.1"/> <div eID="gen1" osisID="Gen" type="book"/>
+<div osisID="Ps" sID="gen6" type="book"/> 
+<chapter osisID="Ps.3" sID="gen7"/> 
+<div type="x-milestone" subType="x-preverse" sID="pv1"/><title canonical="true" type="psalm">A Psalm of David, when he fled from Absalom his son.</title> <div type="x-milestone" subType="x-preverse" eID="pv1"/>LORD, how are they increased that trouble me! <chapter eID="gen7" osisID="Ps.3"/>
+<chapter osisID="Ps.23" sID="gen9"/> 
+<div type="x-milestone" subType="x-preverse" sID="pv2"/><title canonical="true" type="psalm">A Psalm of David.</title> <div type="x-milestone" subType="x-preverse" eID="pv2"/>The LORD is my shepherd; I shall not want.
+He maketh me to lie down in green pastures. <chapter eID="gen9" osisID="Ps.23"/> <div eID="gen6" osisID="Ps" type="book"/>

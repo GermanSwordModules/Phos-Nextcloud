@@ -60,6 +60,7 @@ const nav = computed(() => [
 	{ to: '/read', name: t('phos', 'Bible reading'), icon: I.iconReading },
 	{ to: '/library', name: t('phos', 'Library'), icon: I.iconLibrary },
 	{ to: '/bible', name: t('phos', 'Bible'), icon: I.iconBible },
+	{ to: '/search', name: t('phos', 'Search'), icon: I.iconSearch },
 	{ to: '/bookmarks', name: t('phos', 'Bookmarks'), icon: I.iconBookmarks },
 	{ to: '/notes', name: t('phos', 'Notes'), icon: I.iconNotes },
 	{ to: '/pads', name: t('phos', 'Study pads'), icon: I.iconPads },

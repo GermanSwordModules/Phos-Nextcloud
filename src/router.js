@@ -8,6 +8,7 @@ const routes = [
 	{ path: '/commentary/:module?/:book?/:chapter?', name: 'commentary', component: () => import('./views/BibleView.vue') },
 	{ path: '/dict/:module?/:key(.*)?', name: 'dict', component: () => import('./views/DictView.vue') },
 	{ path: '/book/:module?', name: 'book', component: () => import('./views/BookView.vue') },
+	{ path: '/search', name: 'search', component: () => import('./views/SearchView.vue') },
 	{ path: '/bookmarks', name: 'bookmarks', component: () => import('./views/BookmarksView.vue') },
 	{ path: '/notes', name: 'notes', component: () => import('./views/BookmarksView.vue'), props: { notesOnly: true } },
 	{ path: '/pads/:label?', name: 'pads', component: () => import('./views/StudyPadsView.vue') },

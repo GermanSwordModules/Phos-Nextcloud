@@ -56,4 +56,8 @@ Protokoll (normativ): `docs/protocol.md`. Phasen 1 und 2 sind fertig und verifiz
 - Playwright: First-Run-Wizard öffnet spät und fängt Klicks ab → `page.route(/\/apps\/firstrunwizard\//, abort)`; Hash-Navigation erst, wenn die App steht.
 - Reader: `mod2imp` ist das Referenzorakel (`dev/sword_dump.php` vergleicht Eintrag für Eintrag); libsword wendet in jedem Treiber `prepText` an; Strong's-Lexika haben teils `G0026`, teils `00026` als Schlüssel.
 - `osis2mod -c` auf RawText erzeugt Daten, die libsword selbst nicht zurücklesen kann — keine Fixture dafür.
-- Paralleltexte richten sich nach Vers*nummern*; die Versifikations-Mappings aus `canon_*.h` sind noch nicht übernommen.
+- Versifikations-Mapping (W-3-C): nur 6 Systeme haben in libsword Tabellen (NRSV, Synodal, Vulg, Calvin, DarbyFr, Segond); German/Luther/Catholic… werden **nicht** umgezählt (Desktop genauso). libsword-Eigenheiten bewusst übernommen: Bereich über Kapitelende → +1 (`setFromOther`), die „contraction fix“-Abfrage vergleicht Zeiger. Gegen libsword prüfen: `g++ -I<sword>/include dev/v11n_oracle.cpp /usr/lib/x86_64-linux-gnu/libsword.so.1.9.0` vs. `php dev/v11n_map_dump.php` (im Container).
+- Neue OCS-Routen werden erst nach **Versionssprung** + `app:disable/enable` erkannt (sonst 998/leer). `package.json`-Version muss zu `info.xml` passen (`dev/release.sh` bricht sonst ab).
+- Indexdateien in AppData (`search/`, `leads/`) heißen `<hash(Modul)>-<hash(Rev)>.idx`; ein Neubau löscht die alten desselben Moduls. Von Hand gelöschte Dateien bleiben im Filecache → Lesen fängt das ab und baut neu.
+- Bücher-Leseposition ist jetzt geteilt (`pos:mod:<Modul>`): Tests, die ein Buch „von vorn“ erwarten, müssen den Eintrag ansteuern.
+- Formular mit mehreren Eingaben: Enter löst kein Submit aus → Suchfeld in ein eigenes `<form>`.

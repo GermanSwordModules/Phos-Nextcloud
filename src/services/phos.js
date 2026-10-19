@@ -59,11 +59,22 @@ function cachedGet(key, path, params) {
 }
 const mod = name => `/modules/${encodeURIComponent(name)}`
 export const getBooks = name => cachedGet(`b|${name}`, `${mod(name)}/books`)
-export const getChapter = (name, book, chap) => cachedGet(`c|${name}|${book}|${chap}`, `${mod(name)}/text/${encodeURIComponent(book)}/${chap}`)
+/** as: count verses in that versification (a parallel text next to a Bible of another system) */
+export const getChapter = (name, book, chap, as = '') => cachedGet(`c|${name}|${book}|${chap}|${as}`,
+	`${mod(name)}/text/${encodeURIComponent(book)}/${chap}`, as ? { as } : undefined)
 export const getEntry = (name, key) => cachedGet(`e|${name}|${key}`, `${mod(name)}/entry/${encodeURIComponent(key)}`)
 export const getPlan = name => cachedGet(`p|${name}`, `${mod(name)}/plan`)
 export const getToc = (name, path = '/') => cachedGet(`t|${name}|${path}`, `${mod(name)}/toc`, { path })
 export const getBookEntry = (name, path = '/') => cachedGet(`g|${name}|${path}`, `${mod(name)}/book`, { path })
+/** Sermon and devotional books treating a chapter (start page) */
+export const getSermonBooks = (book, chapter, names) => cachedGet(`sb|${book}|${chapter}`,
+	`/sermons/${encodeURIComponent(book)}/${chapter}`, { names: names.join('|') }).then(r => r.hits)
+/** Pictures and maps citing a chapter (start page) */
+export const getMedia = (book, chapter, names) => cachedGet(`md|${book}|${chapter}`,
+	`/media/${encodeURIComponent(book)}/${chapter}`, { names: names.join('|') }).then(r => r.hits)
+/** Full-text search (W-4); books: '' | 'OT' | 'NT' | OSIS id(s), comma separated */
+export const searchModule = (name, q, { mode = 'all', books = '', offset = 0, limit = 50 } = {}) =>
+	cachedGet(`s|${name}|${q}|${mode}|${books}|${offset}|${limit}`, `${mod(name)}/search`, { q, mode, books, offset, limit })
 export const getKeys = (name, from = '', limit = 200, before = false) => http.get(`${mod(name)}/keys`, { from, limit, before: before ? 1 : 0 }).then(r => r.keys)
 
 /**
@@ -237,4 +248,67 @@ export function createLabel(name, color = '#4a90d9') {
 export function bookmarksIn(book, chap, module) {
 	return bookmarks.value.filter(b => b.bookOsis === book && b.chap === chap && b.kind !== 'entry'
 		&& (!b.module || b.module === module))
+}
+
+// ---------- where the user was reading ----------
+
+const hlcMs = h => parseInt(String(h || '').slice(0, 13), 10) || 0
+
+/**
+ * Bible and commentary panels of the desktop's workspaces (synced, read
+ * only here), newest workspace first: bookIndex is the desktop's 66-book
+ * list, chapIndex 0-based, verseIndex the verse.
+ */
+export const desktopPositions = computed(() => {
+	const out = []
+	const seen = new Set()
+	for (const r of engine.list('workspace')) {
+		for (const p of r.payload?.panels || []) {
+			const book = KJV_ORDER[p.bookIndex]
+			if ((p.kind !== 'Bible' && p.kind !== 'Commentary') || !book || !p.module) {
+				continue
+			}
+			const pos = {
+				workspace: r.payload.name || '', module: p.module, kind: p.kind === 'Bible' ? 'bible' : 'commentary',
+				book, chapter: Math.max(0, p.chapIndex || 0) + 1, verse: Math.max(1, p.verseIndex || 1), at: hlcMs(r.hlc),
+			}
+			const k = [pos.workspace, pos.module, book, pos.chapter, pos.verse].join('|')
+			if (!seen.has(k)) {
+				seen.add(k)
+				out.push(pos)
+			}
+		}
+	}
+	return out.sort((a, b) => b.at - a.at)
+})
+
+/** The web's own last Bible position (this browser). */
+export function rememberPosition(p) {
+	prefs.set('lastRead', { module: p.module, book: p.book, chapter: p.chapter, verse: p.verse, at: Date.now() })
+}
+
+/**
+ * Where to continue reading when nothing is asked for: the newer of this
+ * browser's last position and the desktop's newest workspace (Bibles only).
+ */
+export function resumePosition() {
+	const own = prefs.get('lastRead', null)
+	const desk = desktopPositions.value.find(p => p.kind === 'bible')
+	if (desk && (!own || desk.at > own.at)) {
+		return desk
+	}
+	return own
+}
+
+/** A general book's reading position, shared with the desktop (pos:mod:<module>). */
+export function bookPosition(module) {
+	return engine.get('readingPosition', 'pos:mod:' + module)?.payload?.entryKey || null
+}
+
+export function setBookPosition(module, entryKey) {
+	const cur = engine.get('readingPosition', 'pos:mod:' + module)?.payload
+	if (!entryKey || cur?.entryKey === entryKey) {
+		return
+	}
+	engine.write('readingPosition', 'pos:mod:' + module, { entryKey, scroll: 0 })
 }

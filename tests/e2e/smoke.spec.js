@@ -145,7 +145,18 @@ test('start page “Bibellesen”: plan, sermons and the Bible next to them', as
 	// the sermon belongs to Genesis 1 only
 	await page.getByLabel(/Gehe zu/).fill('Joh 3,16')
 	await page.getByLabel(/Gehe zu/).press('Enter')
-	await expect(side.locator('.sermons')).toContainText('Keine eigene Predigt')
+	// a map module's entry citing the chapter, as a picture tile
+	const tile = side.locator('.media__tile')
+	await expect(tile).toHaveCount(1)
+	await expect(tile).toContainText('Galiläa')
+	await expect.poll(() => tile.locator('img').evaluate(img => img.complete && img.naturalWidth)).toBe(1)
+	// a sermon book (module) citing the chapter in an entry's opening
+	const hit = side.locator('.sermons__books .sermons__item')
+	await expect(hit).toContainText('Joh 3,16 – Kapitel 2')
+	await expect(hit).toContainText('Fixture book')
+	await hit.getByRole('link').click()
+	await expect(page).toHaveURL(/#\/book\/TINYBOOK\?e=/)
+	await expect(page.locator('.book__entry h3')).toHaveText('Kapitel 2')
 })
 
 test('library tree opens a book: contents, next/previous, pictures; a lexicon by lookup', async ({ page }) => {
@@ -158,6 +169,9 @@ test('library tree opens a book: contents, next/previous, pictures; a lexicon by
 	await tree.getByRole('link', { name: /Fixture book/ }).click()
 	await expect(page).toHaveURL(/#\/book\/TINYBOOK/)
 	const entry = page.locator('.book__entry')
+	await expect(entry.locator('h3')).not.toBeEmpty()
+	// it opens where the user is reading (other tests moved that); from the start:
+	await page.locator('.book__toc').getByText('Vorwort').click()
 	await expect(entry.locator('h3')).toHaveText('Vorwort')
 	await entry.getByRole('button', { name: 'Weiter' }).click()
 	await expect(entry.locator('h3')).toHaveText('Teil Eins')
@@ -176,4 +190,78 @@ test('library tree opens a book: contents, next/previous, pictures; a lexicon by
 	await page.getByLabel('Nachschlagen').press('Enter')
 	await expect(page.locator('.dict__entry h3')).toHaveText('G0025')
 	await expect(page.locator('.dict__key--current')).toHaveText('G0025')
+})
+
+test('parallel text in another versification follows the main Bible’s numbering', async ({ page }) => {
+	// TINYSYN counts the Psalms like the Synodal (LXX): KJV Ps 23 = Ps 22 there
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Ps/23?p=TINYSYN')
+	const row = page.locator('.bible__text [data-v="1"]')
+	await expect(row.locator('.bible__cell').first()).toContainText('The LORD is my shepherd')
+	await expect(row.locator('.bible__cell').nth(1)).toContainText('The LORD is my shepherd')
+	await expect(row.locator('.bible__from')).toHaveText('Psalm 22,1')
+	await expect(page.locator('.bible__text [data-v="2"] .bible__cell').nth(1)).toContainText('green pastures')
+})
+
+test('search: Bible on the server, own notes in the browser; a word in “Gehe zu” searches', async ({ page, request }) => {
+	await desktopPush(request, {
+		type: 'bookmark', key: 'bm:e2e-senfkorn',
+		payload: { id: 'e2e-senfkorn', kind: 'verse', bookOsis: 'Gen', bookIdx: 0, chap: 1, vStart: 2, vEnd: 2, labelNames: [],
+			noteHtml: '<p>Glaube wie ein <b>Senfk&ouml;rnlein</b></p>', sortOrder: 0, created: 1791200000, modified: 1791200000 },
+	})
+	await page.getByRole('button', { name: 'Abgleichen' }).click()
+	await page.goto('/index.php/apps/phos/#/search?m=TINYZ&q=god')
+	await expect(page.locator('.search__count')).toHaveText('4 Verse')
+	await expect(page.locator('.search__hit').first()).toContainText('In the beginning')
+	await expect(page.locator('.search__hit mark').first()).toHaveText('God')
+	// Strong's number, phrase, scope
+	await page.getByLabel('Suchen nach').fill('H430')
+	await page.getByLabel('Suchen nach').press('Enter')
+	await expect(page.locator('.search__count')).toHaveText('1 Vers')
+	await expect(page.locator('.search__hit .phos-hit')).toHaveText('God')
+	await page.getByLabel('Suchen nach').fill('"so loved the world"')
+	await page.getByLabel('Suchen nach').press('Enter')
+	await expect(page.locator('.search__hit')).toContainText('so loved the world')
+	await expect(page.locator('.search__count')).toHaveText('1 Vers')
+	await page.locator('.search__hit .search__ref').click()
+	await expect(page).toHaveURL(/#\/bible\/TINYZ\/John\/3\?v=16/)
+	await expect(page.locator('[data-v="16"]')).toHaveClass(/bible__row--selected/)
+
+	await page.getByLabel(/Gehe zu/).fill('senfkör*')
+	await page.getByLabel(/Gehe zu/).press('Enter')
+	await expect(page).toHaveURL(/#\/search\?q=senfk/)
+	await page.getByRole('tab', { name: 'Meine Notizen' }).click()
+	// a desktop note (HTML from RTF) is found too, umlaut or not
+	const hit = page.locator('.search__hit').first()
+	await expect(hit).toContainText('Notiz')
+	await expect(hit.locator('mark')).toHaveText('Senfkörnlein')
+	await hit.locator('.search__ref').click()
+	await expect(page).toHaveURL(/#\/bible\/.*\/Gen\/1\?v=2/)
+})
+
+test('continue reading: the desktop’s workspace on the start page; book positions both ways', async ({ page, request }) => {
+	await desktopPush(request, {
+		type: 'workspace', key: 'ws:7d1c0b6a2f9e4c1d8b3a5e6f7a8b9c0d',
+		payload: { id: '7d1c0b6a2f9e4c1d8b3a5e6f7a8b9c0d', name: 'Arbeitsbereich 1', panels: [
+			{ module: 'TINYZ', kind: 'Bible', width: 1, groupId: 0, strongsAsTag: false, bookIndex: 42, chapIndex: 2, verseIndex: 16 },
+			{ module: 'NotOnline', kind: 'Bible', width: 1, groupId: 0, strongsAsTag: false, bookIndex: 0, chapIndex: 0, verseIndex: 3 },
+		] },
+	})
+	await desktopPush(request, { type: 'readingPosition', key: 'pos:mod:TINYBOOK', payload: { entryKey: '/Teil Eins/Kapitel 2', scroll: 0 } })
+	await page.goto('about:blank')   // a fresh start pulls them
+	await page.goto('/index.php/apps/phos/#/')
+	// the desktop's position is newer than anything read in this browser
+	await expect(page).toHaveURL(/#\/read\/TINYZ\/John\/3\?at=16/)
+	const cont = page.locator('.continue')
+	await expect(cont).toContainText('Johannes 3,16')
+	await expect(cont).toContainText('TINYZ · Arbeitsbereich 1')
+	await expect(cont).toContainText('NotOnline (nicht online)')
+	await cont.getByRole('link', { name: 'Genesis 1,3' }).click()
+	await expect(page).toHaveURL(/#\/read\/TINYZ\/Gen\/1\?at=3/)
+
+	await page.goto('/index.php/apps/phos/#/book/TINYBOOK')
+	const entry = page.locator('.book__entry')
+	await expect(entry.locator('h3')).toHaveText('Kapitel 2')
+	await entry.getByRole('button', { name: 'Zurück' }).click()
+	await expect(entry.locator('h3')).toHaveText('Kapitel 1')
+	await expect.poll(async () => (await record(request, 'readingPosition', 'pos:mod:TINYBOOK'))?.payload.entryKey).toBe('/Teil Eins/Kapitel 1')
 })

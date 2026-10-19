@@ -290,6 +290,29 @@ client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
 - `GET /modules/{name}/text/{osisBook}/{chapter}` → `{book, chapter, bookIntro, intro,
   verses:{n: markup}, links:{n: first}}` — `links`: verses sharing one entry
   with an earlier verse (commentaries); their text repeats the first one.
+  `?as=<versification>` (W-3-C): the chapter counted in that system, filled from
+  this module with libsword's mapping tables (`v11n-maps.json`, rule for rule like
+  `VersificationMgr::System::translateVerse`) → additionally `refs:{n: "Ps.22.1"}`
+  where the text comes from another place, `"Ps.22.0-1"` for a range. A verse whose
+  mapped place is empty takes the same number when that verse is not shown elsewhere
+  (modules declaring a versification their text does not follow).
+- `GET /modules/{name}/search?q=&mode=all|any&books=&offset=&limit=` (W-4, Bibles and
+  commentaries) → `{total, perBook:{osis: n}, terms:[word or prefix*], strongs:[G26],
+  hits:[{book, chapter, verse, text: markup}], ms}`. Query: words (all must occur; `mode=any`:
+  one is enough), `"a phrase"`, `prefix*` (≥ 2 letters), `-excluded`, `G26`/`H430` (Strong's).
+  Words are folded: lower case, ß = ss, no diacritics (Greek accents, Hebrew points); notes and
+  non-canonical titles are not searched. `books`: comma separated OSIS ids, `OT`, `NT`. The index
+  is built on the first search per manifest revision (and cipher key) and kept in the app data
+  (`search/`); 422 for an unsearchable query (`prefix too short`, `empty query`) or module.
+- `GET /sermons/{osisBook}/{chapter}?names=a|b` → `{hits:[{module, description, kind, path |
+  verse, ref, lead}]}` — sermon and devotional books (name/description/category/LCSH as the
+  desktop's `LooksLikeSermon`; commentaries only for *Predigt/Andacht/Sermon/Devotion*) whose
+  entries cite the chapter in their title or first 400 characters (genbooks; `names`: how the
+  client writes the book), or the commentaries' entries on it. Reading plans excluded.
+- `GET /media/{osisBook}/{chapter}?names=a|b` → `{hits:[{module, description, path, ref, lead,
+  picture}]}` — entries of picture and map modules (`LooksLikeMedia`) citing the chapter that
+  show a picture (`picture` as the markup names it; served by the file route below).
+  Both keep an index of every entry's opening in the app data (`leads/`).
 - `GET /modules/{name}/entry/{key}` → `{key, text}`; Strong's keys are padded
   as sword does (`G26` → `G0026`), and a prefixed number falls back to the bare
   one (`00026`). `@LINK` entries are followed.

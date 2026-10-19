@@ -11,6 +11,13 @@ namespace OCA\Phos\Service\Sword;
  * testament heading, per book a book heading, per chapter a chapter heading).
  */
 final class Versification {
+	/**
+	 * sword's "contraction → expansion fix" compares the int pointers
+	 * verse < verse_end, not the values; with the callers' stack layout
+	 * that test is true (checked against libsword by dev/v11n_oracle).
+	 */
+	private const POINTER_QUIRK = true;
+
 	/** @var array<string, list<array{osis:string,name:string,t:int,v:list<int>}>>|null */
 	private static ?array $tables = null;
 	/** @var array<string, self> */
@@ -23,6 +30,13 @@ final class Versification {
 	/** @var list<list<int>> per book: index of each chapter heading */
 	private array $chapterOffsets = [];
 	private int $ntStart = 0;
+	/** @var array<string, array{extra:list<string>,rules:list<list<int>>}>|null */
+	private static ?array $mapTables = null;
+	/** @var list<list<array{0:list<int>,1:int}>>|null per book (0-based): [rule, byte after it] */
+	private ?array $rules = null;
+	/** @var list<string> */
+	private array $extra = [];
+	private int $mapSize = 0;
 
 	private function __construct(public readonly string $name, array $books) {
 		$this->books = $books;
@@ -46,6 +60,196 @@ final class Versification {
 		}
 		if ($testament === 1) {
 			$this->ntStart = $offset;
+		}
+	}
+
+	/**
+	 * Where a verse of this system is in $dst, as sword's VerseKey takes it
+	 * over (VerseKey::setFromOther): null when $dst has no such book;
+	 * otherwise [osis, chapter, verse, verseEnd, outOfBounds] — a verse
+	 * that became several has verseEnd > verse, and one past the end of
+	 * the chapter is clamped and flagged like sword does.
+	 * @return array{0:string,1:int,2:int,3:int,4:bool}|null
+	 */
+	public function mapTo(self $dst, string $osis, int $chapter, int $verse): ?array {
+		if ($dst === $this) {
+			return [$osis, $chapter, $verse, $verse, false];
+		}
+		$book = $osis;
+		$range = $verse;
+		$this->translate($dst, $book, $chapter, $verse, $range);
+		$b = $dst->bookIndex($book);
+		if ($b === null) {
+			return null;
+		}
+		$oob = false;
+		$max = $dst->chapterCount($b);
+		if ($max < $chapter) {
+			$chapter = $max;
+			$verse = $dst->verseCount($b, $chapter);
+			$oob = true;
+		} elseif ($chapter > 0 && $dst->verseCount($b, $chapter) < $verse) {
+			$verse = $dst->verseCount($b, $chapter);
+			$oob = true;
+		}
+		if ($verse < $range) {
+			if ($range > $dst->verseCount($b, $chapter)) {
+				$range++;   // sword does this; the range then ends past the chapter
+			}
+		} else {
+			$range = $verse;
+		}
+		return [$book, $chapter, $verse, $range, $oob];
+	}
+
+	private static function mapTables(): array {
+		return self::$mapTables ??= json_decode((string)file_get_contents(__DIR__ . '/v11n-maps.json'), true);
+	}
+
+	private function loadRules(): void {
+		if ($this->rules !== null) {
+			return;
+		}
+		$this->rules = [];
+		$m = self::mapTables()[$this->name] ?? null;
+		if ($m === null) {
+			return;
+		}
+		$this->extra = $m['extra'];
+		$n = count($this->books);
+		$this->mapSize = $n + count($this->extra);
+		$all = $m['rules'];
+		foreach ($all as $i => $r) {
+			// a 7-byte rule's "8th byte" is what follows it in sword's array
+			$next = $r[7] ?? ($all[$i + 1][0] ?? 0);
+			$this->rules[$r[0] - 1][] = [$r, $next];
+			if ($r[0] > $n) {
+				$this->rules[$r[7] - 1][] = [$r, $next];
+			}
+		}
+	}
+
+	private function isKjv(): bool {
+		return $this->name === 'KJV' || $this->name === 'KJVA';
+	}
+
+	/** osis of a 1-based book number of this system, null if there is none */
+	private function osisOf(int $n): ?string {
+		return $this->books[$n - 1]['osis'] ?? null;
+	}
+
+	/**
+	 * VersificationMgr::System::translateVerse, rule for rule (mappings run
+	 * via KJVA; quirks kept so the web shows what the desktop shows).
+	 */
+	public function translate(self $dst, string &$book, int &$chapter, int &$verse, int &$verseEnd): void {
+		if ($this->isKjv()) {
+			if ($dst->isKjv()) {
+				return;
+			}
+			// reversed mapping: dst's rules, searched forward
+			$dst->loadRules();
+			$b = ($dst->byOsis[$book] ?? -1);
+			if ($b < 0) {
+				foreach ($dst->extra as $i => $x) {
+					if ($x === $book) {
+						$b = count($this->books) + $i - 2;
+						break;
+					}
+				}
+			}
+			if ($b >= $dst->mapSize || $b < 0) {
+				return;
+			}
+			$a = null;
+			foreach ($dst->rules[$b] ?? [] as [$m, $next]) {
+				if ($m[0] !== $b + 1) {
+					continue;   // inter-book rules
+				}
+				if ($m[4] === $chapter && $m[5] <= $verse) {
+					if ($m[5] === $verse || ($m[6] >= $verse && $m[5] <= $verse)) {
+						$chapter = $m[1];
+						$verse = $m[2];
+						$verseEnd = $m[3];
+						if ($m[0] >= count($dst->books)) {
+							$book = $dst->osisOf($m[7] ?? $next) ?? $book;
+						}
+						return;
+					}
+					if ($a === null || max($a[0][5], $a[0][6]) <= max($m[5], $m[6])) {
+						$a = [$m, $next];
+					}
+				}
+			}
+			if ($a !== null) {
+				[$m, $next] = $a;
+				$chapter = $m[1];
+				$d = max($m[3], $m[2]) - max($m[6], $m[5]);
+				if ($verse < $verseEnd) {
+					$verseEnd += $d;
+				} else {
+					$verseEnd = $verse + $d;
+				}
+				$verse += $d;
+				if ($m[0] > count($dst->books)) {
+					$book = $dst->osisOf($m[7] ?? $next) ?? $book;
+				}
+			}
+		} elseif (!$dst->isKjv()) {
+			$kjva = self::get('KJVA');
+			$srcVerse = $verse;
+			$this->translate($kjva, $book, $chapter, $verse, $verseEnd);
+			$iv = $verse;
+			$ir = $verseEnd;
+			$ic = $chapter;
+			$ib = $book;
+			$kjva->translate($dst, $book, $chapter, $verse, $verseEnd);
+			// contraction → expansion fix
+			if (self::POINTER_QUIRK && !($iv < $ir)) {
+				$kjva->translate($this, $ib, $ic, $iv, $ir);
+				if ($iv < $ir) {
+					$verse += $srcVerse - $iv;
+					if ($verse > $verseEnd) {
+						$verse = $verseEnd;
+					} else {
+						$verseEnd = $verse;
+					}
+				}
+			}
+		} else {
+			// forward mapping: own rules, searched backwards
+			$this->loadRules();
+			$b = ($this->byOsis[$book] ?? -1);
+			if ($b < 0 || $b >= $this->mapSize) {
+				return;
+			}
+			$list = $this->rules[$b] ?? [];
+			for ($i = count($list) - 1; $i >= 0; $i--) {
+				$m = $list[$i][0];
+				if ($m[1] < $chapter) {
+					return;   // no mapping for this chapter
+				}
+				if ($m[1] === $chapter && $m[2] <= $verse) {
+					if ($m[2] === $verse || ($m[3] >= $verse && $m[2] <= $verse)) {
+						$chapter = $m[4];
+						$verse = $m[5];
+						$verseEnd = $m[6];
+					} else {
+						$chapter = $m[4];
+						$d = max($m[6], $m[5]) - max($m[3], $m[2]);
+						if ($verse < $verseEnd) {
+							$verseEnd += $d;
+						} else {
+							$verseEnd = $verse + $d;
+						}
+						$verse += $d;
+					}
+					if ($m[0] > count($this->books)) {
+						$book = $this->extra[$m[0] - count($this->books) - 1];
+					}
+					return;
+				}
+			}
 		}
 	}
 

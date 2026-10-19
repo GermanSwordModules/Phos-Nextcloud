@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace">
+<osisText osisIDWork="TinySyn" osisRefWork="Bible" xml:lang="en">
+<header><work osisWork="TinySyn"><title>Tiny test Bible in Synodal versification (KJV wording, public domain)</title><refSystem>Bible.Synodal</refSystem></work></header>
+<div type="book" osisID="Ps">
+<chapter osisID="Ps.3">
+<verse osisID="Ps.3.1">A Psalm of David, when he fled from Absalom his son.</verse>
+<verse osisID="Ps.3.2">LORD, how are they increased that trouble me!</verse>
+<verse osisID="Ps.3.3">Many there be which say of my soul, There is no help for him in God.</verse>
+</chapter>
+<chapter osisID="Ps.22">
+<verse osisID="Ps.22.1">A Psalm of David. The LORD is my shepherd; I shall not want.</verse>
+<verse osisID="Ps.22.2">He maketh me to lie down in green pastures.</verse>
+</chapter>
+</div>
+</osisText>
+</osis>
