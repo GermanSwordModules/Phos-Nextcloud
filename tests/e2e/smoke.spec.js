@@ -125,3 +125,25 @@ test('study pad lists the label’s bookmarks; own note added', async ({ page, r
 		return d.changes.find(r => r.payload?.noteMd === 'Gedanke zum Thema')?.payload.kind
 	}).toBe('entry')
 })
+
+test('start page “Bibellesen”: plan, sermons and the Bible next to them', async ({ page, request }) => {
+	await desktopPush(request, {
+		type: 'sermon', key: 'sermon:e2e-gen1',
+		payload: { uuid: 'e2e-gen1', title: 'Am Anfang', passage: '1. Mose 1,1–5', passage_osis: 'Gen.1.1-Gen.1.5', main_idea: 'Gott spricht, und es wird.', outline: [{ title: 'Licht', blocks: [] }], modified: '2026-10-19T10:00:00' },
+	})
+	await page.goto('/index.php/apps/phos/#/')
+	await expect(page).toHaveURL(/#\/read\/TINYZ\/Gen\/1/)
+	const side = page.locator('.reading__side')
+	await expect(side.locator('.plan__dayhead h3')).toHaveText(/Tag \d/)
+	await page.getByRole('button', { name: 'Abgleichen' }).click()
+	await expect(side.locator('.sermons')).toContainText('Am Anfang')
+	await expect(side.locator('.sermons')).toContainText('Gott spricht, und es wird.')
+	// a plan passage opens in the Bible on the left, still on this page
+	await side.locator('.plan__ref').first().click()
+	await expect(page).toHaveURL(/#\/read\/TINYZ\//)
+	await expect(page.locator('.bible__text')).toBeVisible()
+	// the sermon belongs to Genesis 1 only
+	await page.getByLabel(/Gehe zu/).fill('Joh 3,16')
+	await page.getByLabel(/Gehe zu/).press('Enter')
+	await expect(side.locator('.sermons')).toContainText('Keine eigene Predigt')
+})

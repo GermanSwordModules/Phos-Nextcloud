@@ -57,6 +57,7 @@ const iconOffline = I.iconOffline
 const startError = ref('')
 
 const nav = computed(() => [
+	{ to: '/read', name: t('phos', 'Bible reading'), icon: I.iconReading },
 	{ to: '/bible', name: t('phos', 'Bible'), icon: I.iconBible },
 	{ to: '/bookmarks', name: t('phos', 'Bookmarks'), icon: I.iconBookmarks },
 	{ to: '/notes', name: t('phos', 'Notes'), icon: I.iconNotes },

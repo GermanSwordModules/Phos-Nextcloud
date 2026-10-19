@@ -1,7 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
-	{ path: '/', redirect: '/bible' },
+	{ path: '/', redirect: '/read' },
+	{ path: '/read/:module?/:book?/:chapter?', name: 'read', component: () => import('./views/ReadingView.vue') },
 	{ path: '/bible/:module?/:book?/:chapter?', name: 'bible', component: () => import('./views/BibleView.vue') },
 	{ path: '/bookmarks', name: 'bookmarks', component: () => import('./views/BookmarksView.vue') },
 	{ path: '/notes', name: 'notes', component: () => import('./views/BookmarksView.vue'), props: { notesOnly: true } },

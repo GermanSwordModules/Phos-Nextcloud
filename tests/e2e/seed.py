@@ -38,7 +38,8 @@ def upload_from(root, user, pw, conf_name):
     text = open(os.path.join(root, "mods.d", conf_name), encoding="utf-8", errors="replace").read()
     name = [l.strip()[1:-1] for l in text.splitlines() if l.strip().startswith("[")][0]
     dp = [l.split("=", 1)[1].strip() for l in text.splitlines() if l.startswith("DataPath=")][0].removeprefix("./")
-    d = dp if dp.endswith("/") else dp.rsplit("/", 1)[0] + "/"
+    # a directory (texts, commentaries — slash or not), else a file prefix (lexicons)
+    d = dp.rstrip("/") + "/" if os.path.isdir(os.path.join(root, dp)) else dp.rsplit("/", 1)[0] + "/"
     dav = f"{rv.BASE}/remote.php/dav/files/{user}"
     acc = f"Phos/Module/{name}"
     for p in ["Phos", "Phos/Module", acc] + [acc + "/" + "/".join(d.strip("/").split("/")[:i + 1]) for i in range(len(d.strip("/").split("/")))]:

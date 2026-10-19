@@ -146,8 +146,16 @@ import {
 } from '../services/phos.js'
 import { iconPrev, iconNext } from '../icons.js'
 
+/**
+ * The Bible text, standalone (route `bible`) or as the left half of the
+ * Bible reading page (route `read`): it navigates within whichever route
+ * shows it, and reports the verse being read (`position`: the selected
+ * verse, else the first one in view) so that page can follow along.
+ */
+const emit = defineEmits(['position'])
 const route = useRoute()
 const router = useRouter()
+const routeName = computed(() => route.name || 'bible')
 
 const moduleName = computed(() => route.params.module || defaultBible())
 const book = computed(() => route.params.book || null)
@@ -233,7 +241,7 @@ function go({ module = moduleName.value, book: b = book.value, chapter: c = chap
 	}
 	selection.value = null
 	pop.close()
-	router.push({ name: 'bible', params: { module, book: b, chapter: c }, query })
+	router.push({ name: routeName.value, params: { module, book: b, chapter: c }, query })
 }
 
 // ---------- loading ----------
@@ -258,7 +266,7 @@ async function load() {
 			if (!start) {
 				throw new Error(t('phos', 'The module has no books.'))
 			}
-			router.replace({ name: 'bible', params: { module: moduleName.value, book: start.osis, chapter: prefs.get('lastChapter', 1) }, query: route.query })
+			router.replace({ name: routeName.value, params: { module: moduleName.value, book: start.osis, chapter: prefs.get('lastChapter', 1) }, query: route.query })
 			return
 		}
 		prefs.set('lastBook', book.value)
@@ -281,6 +289,7 @@ async function load() {
 		columns.value = cols
 		loading.value = false
 		await nextTick()
+		bindScroll()
 		const v = Number(route.query.v)
 		if (v) {
 			selection.value = { from: v, to: v }
@@ -426,6 +435,46 @@ function gotoInput() {
 		go({ book: r.book, chapter: r.c1, v: r.v1 || undefined })
 	}
 }
+
+// ---------- where the reader is ----------
+
+let scroller = null
+let raf = 0
+function topVerse() {
+	if (!textEl.value || !scroller) {
+		return 1
+	}
+	// the first verse not hidden under the sticky navigation
+	const nav = textEl.value.closest('.bible')?.querySelector('.bible__nav')
+	const top = nav ? nav.getBoundingClientRect().bottom : scroller.getBoundingClientRect().top
+	for (const row of textEl.value.querySelectorAll('[data-v]')) {
+		if (row.getBoundingClientRect().bottom > top + 8) {
+			return Number(row.dataset.v)
+		}
+	}
+	return 1
+}
+function report() {
+	raf = 0
+	if (book.value) {
+		emit('position', { module: moduleName.value, book: book.value, chapter: chapter.value, verse: selection.value?.from || topVerse() })
+	}
+}
+const onScroll = () => { raf ||= requestAnimationFrame(report) }
+function bindScroll() {
+	const sc = textEl.value?.closest('#app-content-vue, .app-content') || null
+	if (sc !== scroller) {
+		scroller?.removeEventListener('scroll', onScroll)
+		scroller = sc
+		scroller?.addEventListener('scroll', onScroll, { passive: true })
+	}
+	onScroll()
+}
+watch(selection, onScroll)
+onBeforeUnmount(() => {
+	scroller?.removeEventListener('scroll', onScroll)
+	cancelAnimationFrame(raf)
+})
 
 const onKey = e => {
 	if (e.target.closest?.('input, textarea, [contenteditable]')) {

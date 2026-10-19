@@ -25,4 +25,5 @@ export {
 	mdiLock as iconLock,
 	mdiAccount as iconPerson,
 	mdiCalendarToday as iconToday,
+	mdiHomeOutline as iconReading,
 } from '@mdi/js'
