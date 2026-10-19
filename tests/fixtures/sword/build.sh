@@ -42,3 +42,8 @@ mkdir -p modules/genbook/rawgenbook/tinyplan
 printf '1=Gen.1;John.3.16-John.3.17\n# comment\n2=Rev.22.21,Gen.1.1\n' > modules/genbook/rawgenbook/tinyplan/tinyplan.properties
 printf '{"2": ["Rev.22.21", "Zum Nachdenken.", "Gen.1.1"]}\n' > modules/genbook/rawgenbook/tinyplan/tinyplan.json
 printf '[TINYPLAN]\nDataPath=./modules/genbook/rawgenbook/tinyplan/\nModDrv=RawGenBook\nCategory=And Bible\nAndBibleProvidesReadingPlan=tinyplan.properties\nPhosReadingPlanText=tinyplan.json\nVersification=KJV\nEncoding=UTF-8\nDescription=Fixture reading plan\n' > mods.d/tinyplan.conf
+# General book (xml2gbs) with a picture, for the book reader and the picture route
+mkdir -p modules/genbook/rawgenbook/tinybook/images
+(cd modules/genbook/rawgenbook/tinybook && xml2gbs -fO ../../../../tinybook.osis.xml tinybook >/dev/null)
+echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC' | base64 -d > modules/genbook/rawgenbook/tinybook/images/bild.png
+printf '[TINYBOOK]\nDataPath=./modules/genbook/rawgenbook/tinybook/tinybook\nModDrv=RawGenBook\nSourceType=OSIS\nEncoding=UTF-8\nLang=de\nCategory=Generic Books\nDescription=Fixture book\n' > mods.d/tinybook.conf

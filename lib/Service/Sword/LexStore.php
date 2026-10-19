@@ -62,6 +62,11 @@ final class LexStore {
 		return $this->caseSensitive ? $k : mb_strtoupper($k, 'UTF-8');
 	}
 
+	/** Like lowerBound, for a key as a user types it (Strong's numbers padded as sword does). */
+	public function seek(string $key): int {
+		return $this->lowerBound($this->strongsPadding ? self::strongsPad($key) : $key);
+	}
+
 	/** Position of the first entry whose key is >= $key (binary search). */
 	public function lowerBound(string $key): int {
 		$k = $this->norm($key);

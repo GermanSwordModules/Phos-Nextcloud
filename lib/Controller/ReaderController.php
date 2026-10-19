@@ -74,11 +74,23 @@ class ReaderController extends OCSController {
 		});
 	}
 
+	/** Children of one entry of a book ("/" = top level). */
+	#[NoAdminRequired]
+	public function toc(string $module, string $path = '/', ?string $collection = null): DataResponse {
+		return $this->run(fn () => $this->modules->toc($this->uid(), $module, $path, $collection));
+	}
+
+	/** One entry of a book with its neighbours ("/" = the first one). */
+	#[NoAdminRequired]
+	public function bookEntry(string $module, string $path = '/', ?string $collection = null): DataResponse {
+		return $this->run(fn () => $this->modules->bookEntry($this->uid(), $module, $path, $collection));
+	}
+
 	/**
 	 * @param int<1, 200> $limit
 	 */
 	#[NoAdminRequired]
-	public function keys(string $module, string $from = '', int $limit = 50, ?string $collection = null): DataResponse {
-		return $this->run(fn () => ['keys' => $this->modules->dictKeys($this->uid(), $module, $from, max(1, min(200, $limit)), $collection)]);
+	public function keys(string $module, string $from = '', int $limit = 50, ?string $collection = null, bool $before = false): DataResponse {
+		return $this->run(fn () => ['keys' => $this->modules->dictKeys($this->uid(), $module, $from, max(1, min(200, $limit)), $collection, $before)]);
 	}
 }

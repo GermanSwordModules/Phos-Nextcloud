@@ -6,11 +6,11 @@
 				:options="bibleOptions"
 				:clearable="false"
 				:selectable="o => !o.locked"
-				:input-label="t('phos', 'Bible')"
+				:input-label="isCommentary ? t('phos', 'Commentary') : t('phos', 'Bible')"
 				label="label" />
 			<NcSelect v-model="parallelSel"
 				class="bible__module"
-				:options="bibleOptions"
+				:options="parallelOptions"
 				:selectable="o => !o.locked"
 				:input-label="t('phos', 'Parallel text')"
 				:placeholder="t('phos', 'none')"
@@ -51,8 +51,8 @@
 			</NcCheckboxRadioSwitch>
 		</div>
 
-		<NcEmptyContent v-if="!bibles.length"
-			:name="t('phos', 'No Bible on the server yet')"
+		<NcEmptyContent v-if="!ownModules.length"
+			:name="isCommentary ? t('phos', 'No commentary on the server yet.') : t('phos', 'No Bible on the server yet')"
 			:description="t('phos', 'Bibles appear here once you store them online in Phos Desktop (library → right-click a module → “Online speichern (Nextcloud)”).')" />
 		<NcEmptyContent v-else-if="error" :name="t('phos', 'This text cannot be shown')" :description="error" />
 		<div v-else-if="loading" class="bible__loading">
@@ -141,7 +141,7 @@ import { useTextPopover } from '../components/useNotes.js'
 import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef, registerBookName } from '../bible/books.js'
 import {
-	bibles, modules, getBooks, getChapter, getEntry, defaultBible, prefs, lang,
+	bibles, commentaries, modules, getBooks, getChapter, getEntry, defaultBible, defaultCommentary, prefs, lang,
 	bookmarksIn, labels,
 } from '../services/phos.js'
 import { iconPrev, iconNext } from '../icons.js'
@@ -157,7 +157,10 @@ const route = useRoute()
 const router = useRouter()
 const routeName = computed(() => route.name || 'bible')
 
-const moduleName = computed(() => route.params.module || defaultBible())
+// route `commentary`: the same page for commentaries (verse-keyed alike)
+const isCommentary = computed(() => route.name === 'commentary')
+const ownModules = computed(() => isCommentary.value ? commentaries.value : bibles.value)
+const moduleName = computed(() => route.params.module || (isCommentary.value ? defaultCommentary() : defaultBible()))
 const book = computed(() => route.params.book || null)
 const chapter = computed(() => Number(route.params.chapter) || 1)
 const parallelName = computed(() => route.query.p || '')
@@ -175,15 +178,18 @@ const versePerLine = ref(prefs.get('versePerLine', true))
 watch(versePerLine, v => prefs.set('versePerLine', v))
 const pop = useTextPopover()
 
-const bibleOptions = computed(() => bibles.value.map(m => ({
+const option = m => ({
 	id: m.name, label: m.locked ? `🔒 ${m.name} – ${m.description}` : `${m.name} – ${m.description}`, locked: m.locked,
-})))
+})
+const bibleOptions = computed(() => ownModules.value.map(option))
+// a Bible next to a commentary, or a commentary as a column next to the Bible
+const parallelOptions = computed(() => [...bibles.value, ...commentaries.value].map(option))
 const moduleSel = computed({
 	get: () => bibleOptions.value.find(o => o.id === moduleName.value) || null,
-	set: o => { if (o) { prefs.set('bible', o.id); go({ module: o.id }) } },
+	set: o => { if (o) { prefs.set(isCommentary.value ? 'commentary' : 'bible', o.id); go({ module: o.id }) } },
 })
 const parallelSel = computed({
-	get: () => bibleOptions.value.find(o => o.id === parallelName.value) || null,
+	get: () => parallelOptions.value.find(o => o.id === parallelName.value) || null,
 	set: o => go({ p: o?.id || '' }),
 })
 const bookOptions = computed(() => books.value.map(b => ({ id: b.osis, label: bookName(b.osis, lang, b.name) })))

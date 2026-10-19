@@ -39,3 +39,10 @@ test('poetry lines and line breaks', () => {
 	const r = render('<l level="1">Der HERR ist mein Hirte,</l><l level="2"><divineName>Herr</divineName> mir</l><lb/>Ende')
 	assert.equal(r.html, '<span class="phos-l">Der HERR ist mein Hirte,</span><br><span class="phos-l"><span class="phos-divine">Herr</span> mir</span><br><br>Ende')
 })
+
+test('pictures only through the caller’s URL builder', () => {
+	const picture = src => /^javascript:/i.test(src) ? null : `/m/file?path=${encodeURIComponent(src)}`
+	const r = render('<p>Karte <figure src="images/a b.png"/> und <img src="javascript:alert(1)"/></p>', { picture })
+	assert.equal(r.html, '<p>Karte <img class="phos-img" src="/m/file?path=images%2Fa%20b.png" alt="" loading="lazy"> und </p>')
+	assert.doesNotMatch(render('<img src="/images/x.jpg"/>').html, /<img/)
+})

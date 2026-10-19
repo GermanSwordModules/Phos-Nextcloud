@@ -147,3 +147,33 @@ test('start page “Bibellesen”: plan, sermons and the Bible next to them', as
 	await page.getByLabel(/Gehe zu/).press('Enter')
 	await expect(side.locator('.sermons')).toContainText('Keine eigene Predigt')
 })
+
+test('library tree opens a book: contents, next/previous, pictures; a lexicon by lookup', async ({ page }) => {
+	await page.goto('/index.php/apps/phos/#/library')
+	const tree = page.locator('.library__tree')
+	await expect(tree).toContainText('Bibel')
+	await expect(tree).not.toContainText('Fixture reading plan')     // plans have their own page
+	await tree.getByRole('button', { name: /Bücher/ }).click()
+	await tree.getByRole('button', { name: /Deutsch/ }).click()
+	await tree.getByRole('link', { name: /Fixture book/ }).click()
+	await expect(page).toHaveURL(/#\/book\/TINYBOOK/)
+	const entry = page.locator('.book__entry')
+	await expect(entry.locator('h3')).toHaveText('Vorwort')
+	await entry.getByRole('button', { name: 'Weiter' }).click()
+	await expect(entry.locator('h3')).toHaveText('Teil Eins')
+	await entry.getByRole('button', { name: 'Weiter' }).click()
+	await expect(entry.locator('h3')).toHaveText('Kapitel 1')
+	await expect(entry.locator('.book__trail')).toContainText('Teil Eins')
+	await expect(page.locator('.book__toc')).toContainText('Kapitel 2')    // the way to the entry is open
+	await expect.poll(() => entry.locator('img.phos-img').evaluate(img => img.complete && img.naturalWidth)).toBe(1)
+	await page.locator('.book__toc').getByText('Anhang').click()
+	await expect(entry.locator('h3')).toHaveText('Anhang')
+	await expect(entry.getByRole('button', { name: 'Weiter' })).toBeDisabled()
+
+	await page.goto('/index.php/apps/phos/#/dict/TINYLEX_ZLD')
+	await expect(page.locator('.dict__entry h3')).not.toBeEmpty()
+	await page.getByLabel('Nachschlagen').fill('g25')
+	await page.getByLabel('Nachschlagen').press('Enter')
+	await expect(page.locator('.dict__entry h3')).toHaveText('G0025')
+	await expect(page.locator('.dict__key--current')).toHaveText('G0025')
+})

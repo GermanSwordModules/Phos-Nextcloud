@@ -9,6 +9,8 @@ return [
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 		// files of shared collections, for members (raw bytes, not OCS)
 		['name' => 'files#get', 'url' => '/files/{collection}/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
+		// pictures of books and maps, as their text names them (W-3-B)
+		['name' => 'module_file#get', 'url' => '/module/{module}/file', 'verb' => 'GET'],
 	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
@@ -34,5 +36,7 @@ return [
 		['name' => 'reader#plan', 'url' => '/api/v1/modules/{module}/plan', 'verb' => 'GET'],
 		['name' => 'reader#keys', 'url' => '/api/v1/modules/{module}/keys', 'verb' => 'GET'],
 		['name' => 'reader#entry', 'url' => '/api/v1/modules/{module}/entry/{key}', 'verb' => 'GET', 'requirements' => ['key' => '.+']],
+		['name' => 'reader#toc', 'url' => '/api/v1/modules/{module}/toc', 'verb' => 'GET'],
+		['name' => 'reader#bookEntry', 'url' => '/api/v1/modules/{module}/book', 'verb' => 'GET'],
 	],
 ];

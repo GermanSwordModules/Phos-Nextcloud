@@ -162,9 +162,41 @@ class ModuleService {
 	}
 
 	/** @return list<string> */
-	public function dictKeys(string $uid, string $name, string $from, int $n, ?string $collection = null): array {
+	public function dictKeys(string $uid, string $name, string $from, int $n, ?string $collection = null, bool $before = false): array {
 		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
-		return $this->open($uid, $r)->dictKeys($from, $n);
+		return $this->open($uid, $r)->dictKeys($from, $n, $before);
+	}
+
+	public function toc(string $uid, string $name, string $path, ?string $collection = null): array {
+		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		return $this->cached($r, "t/$path", fn () => $this->open($uid, $r)->toc($path), $uid);
+	}
+
+	public function bookEntry(string $uid, string $name, string $path, ?string $collection = null): array {
+		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		return $this->cached($r, "g/$path", fn () => $this->open($uid, $r)->bookEntry($path), $uid);
+	}
+
+	/**
+	 * A picture of a module, as its text names it.
+	 * @return array{data:string,mime:string}
+	 */
+	public function file(string $uid, string $name, string $path, ?string $collection = null): array {
+		$mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+			'jpg', 'jpeg' => 'image/jpeg',
+			'png' => 'image/png',
+			'gif' => 'image/gif',
+			'webp' => 'image/webp',
+			'bmp' => 'image/bmp',
+			'svg' => 'image/svg+xml',
+			default => throw new NotFound('not a picture'),
+		};
+		$r = $this->record($uid, $name, $collection) ?? throw new NotFound("no module $name");
+		$folder = $this->folder($r->collection, $this->name($r)) ?? throw new NotFound('module files are not on the server');
+		$m = $this->open($uid, $r);
+		$p = $m->resolveFile($path) ?? throw new NotFound("no file $path");
+		$fs = new NodeModuleFiles($folder);
+		return ['data' => $fs->read($p, 0, $fs->size($p)), 'mime' => $mime];
 	}
 
 	/**

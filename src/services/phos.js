@@ -1,6 +1,7 @@
 import { reactive, ref, computed } from 'vue'
 import { getCurrentUser } from '@nextcloud/auth'
 import { getLanguage } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import { http } from './api.js'
 import { SyncEngine } from '../sync/engine.js'
 import { KJV_ORDER } from '../bible/books.js'
@@ -61,6 +62,61 @@ export const getBooks = name => cachedGet(`b|${name}`, `${mod(name)}/books`)
 export const getChapter = (name, book, chap) => cachedGet(`c|${name}|${book}|${chap}`, `${mod(name)}/text/${encodeURIComponent(book)}/${chap}`)
 export const getEntry = (name, key) => cachedGet(`e|${name}|${key}`, `${mod(name)}/entry/${encodeURIComponent(key)}`)
 export const getPlan = name => cachedGet(`p|${name}`, `${mod(name)}/plan`)
+export const getToc = (name, path = '/') => cachedGet(`t|${name}|${path}`, `${mod(name)}/toc`, { path })
+export const getBookEntry = (name, path = '/') => cachedGet(`g|${name}|${path}`, `${mod(name)}/book`, { path })
+export const getKeys = (name, from = '', limit = 200, before = false) => http.get(`${mod(name)}/keys`, { from, limit, before: before ? 1 : 0 }).then(r => r.keys)
+
+/**
+ * URL builder for the pictures of a module (render's `picture`). Pictures
+ * named by an online URL are looked for under images/ by their file name,
+ * like the desktop does for bundled copies.
+ */
+export function pictureUrl(module) {
+	const base = generateUrl('/apps/phos/module/{module}/file', { module })
+	return src => {
+		let p = String(src).trim()
+		if (/^[a-z][a-z0-9+.-]*:/i.test(p)) {
+			if (!/^https?:/i.test(p)) {
+				return null
+			}
+			p = 'images/' + decodeURIComponent(p.split(/[?#]/)[0].split('/').pop() || '')
+		}
+		return p ? `${base}?path=${encodeURIComponent(p)}` : null
+	}
+}
+
+// ---------- library ----------
+
+/** The desktop's library groups (unit1 BuildLibraryTree / unit_config CfgKindOfCategory). */
+export const LIBRARY_GROUPS = ['bible', 'commentary', 'book', 'dictionary', 'map']
+
+export function libraryGroup(m) {
+	const cat = m.category || ''
+	if (m.kind === 'bible') {
+		return 'bible'
+	}
+	if (m.kind === 'commentary') {
+		return 'commentary'
+	}
+	if (/Maps|Images|Cartographic/.test(cat)) {
+		return 'map'
+	}
+	if (m.kind === 'dictionary') {
+		return 'dictionary'
+	}
+	return 'book'
+}
+
+/** Where a module is read in the web. */
+export function moduleRoute(m) {
+	switch (m.kind) {
+	case 'bible': return { name: 'bible', params: { module: m.name } }
+	case 'commentary': return { name: 'commentary', params: { module: m.name } }
+	case 'dictionary': return { name: 'dict', params: { module: m.name } }
+	case 'genbook': return { name: 'book', params: { module: m.name } }
+	default: return null
+	}
+}
 
 /** Lexicons for a Strong's number: the user's default dictionary first, then any with the feature. */
 export function lexiconsFor(strong) {
@@ -75,6 +131,14 @@ export function lexiconsFor(strong) {
 
 export function setting(name) {
 	return engine.get('setting', 'setting:' + name)?.payload?.value ?? null
+}
+
+export const commentaries = computed(() => modules.value.filter(m => m.kind === 'commentary'))
+
+export function defaultCommentary() {
+	const names = commentaries.value.filter(m => !m.locked).map(m => m.name)
+	const want = [prefs.get('commentary', null), setting('StudyCommentaries.Mod1')]
+	return want.find(n => n && names.includes(n)) || names[0] || null
 }
 
 export function defaultBible() {

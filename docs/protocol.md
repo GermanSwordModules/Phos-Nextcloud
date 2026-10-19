@@ -276,14 +276,14 @@ newly joined collections themselves (`joined`/`collections` above).
 
 The server reads synced SWORD modules itself (PHP, `lib/Service/Sword/`, no
 libsword): zText/zCom (2- and 4-byte sizes), RawText/RawCom (also 4), zLD,
-RawLD, RawLD4; compression ZIP (BZIP2 when PHP has it); versifications from
+RawLD, RawLD4, RawGenBook; compression ZIP (BZIP2 when PHP has it); versifications from
 libsword's canon tables (`v11n.json`). Entries come back as stored (OSIS, ThML,
 TEI …, after libsword's `prepText`), converted to UTF-8; rendering is the
 client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
 
 - `GET /modules` → `{modules:[{name, description, kind: bible|commentary|dictionary|genbook|other,
   lang, direction, versification, sourceType, features[], options[], ciphered, locked,
-  readingPlan, collection, size}]}` — every `module` record of the readable collections,
+  readingPlan, category, collection, size}]}` — every `module` record of the readable collections,
   each name once (own collection first).
 - `GET /modules/{name}/books` → `{versification, books:[{osis, name, testament, verses:[per chapter]}]}`
   (books of the testaments the module has files for).
@@ -293,7 +293,15 @@ client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
 - `GET /modules/{name}/entry/{key}` → `{key, text}`; Strong's keys are padded
   as sword does (`G26` → `G0026`), and a prefixed number falls back to the bare
   one (`00026`). `@LINK` entries are followed.
-- `GET /modules/{name}/keys?from=&limit=` → `{keys:[…]}` (sorted, from the first key ≥ `from`).
+- `GET /modules/{name}/keys?from=&limit=&before=` → `{keys:[…]}` (sorted, from the first key ≥ `from`;
+  `before=1`: the keys right before it). `from` is padded like an entry key.
+- `GET /modules/{name}/toc?path=` → `{path, children:[{name, path, children: bool}]}` — one level
+  of a general book's contents (`/` = top level).
+- `GET /modules/{name}/book?path=` → `{path, name, text, prev, next, trail:[path], children: bool}` —
+  one entry of a general book; `prev`/`next` in reading order (depth first), `trail` = its
+  ancestors; `/` = the first entry. Names match exactly, else case-insensitively.
+- `GET /apps/phos/module/{name}/file?path=` (plain route, not OCS) → a picture of the module
+  (jpg/png/gif/webp/bmp/svg), by the path its text names, relative to the module's data folder.
 - `GET /modules/{name}/plan` → `{dateBased, days:[{day, date, passages:[osisRef], seq:[osisRef or text]}]}`
   for modules with `readingPlan: true` (AndBible `.properties`, plus Phos'
   `PhosReadingPlanText` companion). Progress is the user's `planProgress`

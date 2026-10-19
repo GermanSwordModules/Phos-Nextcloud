@@ -15,6 +15,7 @@ final class SwordModule {
 	public readonly string $kind;
 	private ?VerseStore $verses = null;
 	private ?LexStore $lex = null;
+	private ?GenBookStore $tree = null;
 
 	public function __construct(
 		public readonly Conf $conf,
@@ -80,6 +81,78 @@ final class SwordModule {
 			$this->conf->get('CompressType', 'ZIP'), $this->key(),
 			strcasecmp($this->conf->get('CaseSensitiveKeys'), 'true') === 0,
 			strcasecmp($this->conf->get('StrongsPadding'), 'false') !== 0);
+	}
+
+	private function genBook(): GenBookStore {
+		if ($this->kind !== self::GENBOOK) {
+			throw new SwordException('not a book');
+		}
+		if ($this->locked()) {
+			throw new SwordException('module is locked');
+		}
+		return $this->tree ??= new GenBookStore($this->fs, rtrim($this->conf->dataPath(), '/'), $this->key(),
+			fn (string $s) => $this->utf8($s));
+	}
+
+	/**
+	 * Table of contents one level deep: the children of $path.
+	 * @return array{path:string,children:list<array{name:string,path:string,children:bool}>}
+	 */
+	public function toc(string $path): array {
+		$t = $this->genBook();
+		$id = $t->find($path) ?? throw new SwordException("no such entry: $path");
+		$base = $id === 0 ? '' : $t->pathOf($id);
+		$out = [];
+		foreach ($t->children($id) as $c) {
+			$n = $t->node($c);
+			$out[] = ['name' => $n['name'], 'path' => $base . '/' . $n['name'], 'children' => $n['child'] >= 0];
+		}
+		return ['path' => $base === '' ? '/' : $base, 'children' => $out];
+	}
+
+	/**
+	 * One entry of a book with its neighbours in reading order. The root
+	 * ("/") stands for the first entry.
+	 * @return array{path:string,name:string,text:string,prev:?string,next:?string,trail:list<string>,children:bool}
+	 */
+	public function bookEntry(string $path): array {
+		$t = $this->genBook();
+		$id = $t->find($path) ?? throw new SwordException("no such entry: $path");
+		if ($id === 0) {
+			$id = $t->nextOf(0);
+			if ($id < 0) {
+				throw new SwordException('the book is empty');
+			}
+		}
+		$prev = $t->prevOf($id);
+		$next = $t->nextOf($id);
+		$trail = [];
+		for ($p = $t->node($id)['parent'], $guard = 0; $p > 0 && $guard < 200; $p = $t->node($p)['parent'], $guard++) {
+			array_unshift($trail, $t->pathOf($p));
+		}
+		return [
+			'path' => $t->pathOf($id),
+			'name' => $t->node($id)['name'],
+			'text' => $this->utf8(Text::prep($t->text($id))),
+			'prev' => $prev > 0 ? $t->pathOf($prev) : null,
+			'next' => $next > 0 ? $t->pathOf($next) : null,
+			'trail' => $trail,
+			'children' => $t->node($id)['child'] >= 0,
+		];
+	}
+
+	/**
+	 * A file of the module (pictures of books and maps), by the path its
+	 * text uses: relative to the module's data folder. Null = not there.
+	 */
+	public function resolveFile(string $path): ?string {
+		$dir = $this->conf->dataPath();
+		$dir = str_ends_with($dir, '/') ? $dir : substr($dir, 0, (int)strrpos($dir, '/') + 1);
+		$rel = ltrim(str_replace('\\', '/', $path), '/');
+		if ($rel === '' || preg_match('#(^|/)\.\.(/|$)#', $rel)) {
+			return null;
+		}
+		return $this->fs->exists($dir . $rel) ? $dir . $rel : null;
 	}
 
 	private function utf8(string $s): string {
@@ -153,11 +226,20 @@ final class SwordModule {
 		return $t === null ? null : $this->utf8(Text::prep($t));
 	}
 
-	/** Up to $n keys starting at the first key >= $from. @return list<string> */
-	public function dictKeys(string $from, int $n): array {
+	/**
+	 * Up to $n keys starting at the first key >= $from; with $before the
+	 * (up to) $n keys right before it instead.
+	 * @return list<string>
+	 */
+	public function dictKeys(string $from, int $n, bool $before = false): array {
 		$lex = $this->lexStore();
 		$out = [];
-		for ($i = $lex->lowerBound($from); $i < $lex->count() && count($out) < $n; $i++) {
+		$i = $lex->seek($from);
+		$end = $before ? $i : $lex->count();
+		if ($before) {
+			$i = max(0, $i - $n);
+		}
+		for (; $i < $end && count($out) < $n; $i++) {
 			$k = $lex->keyAt($i);
 			if ($k !== '') {
 				$out[] = $this->utf8($k);
@@ -202,6 +284,7 @@ final class SwordModule {
 			'ciphered' => $this->ciphered(),
 			'locked' => $this->locked(),
 			'readingPlan' => $c->get('AndBibleProvidesReadingPlan') !== '',
+			'category' => $c->get('Category'),
 		];
 	}
 }

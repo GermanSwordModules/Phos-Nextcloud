@@ -45,10 +45,20 @@ def upload_from(root, user, pw, conf_name):
     for p in ["Phos", "Phos/Module", acc] + [acc + "/" + "/".join(d.strip("/").split("/")[:i + 1]) for i in range(len(d.strip("/").split("/")))]:
         raw("MKCOL", f"{dav}/{p}", user, pw)
     files = []
-    for f in sorted(os.listdir(os.path.join(root, d))):
-        full = os.path.join(root, d, f)
-        if not os.path.isfile(full):
+    prefix = "" if os.path.isdir(os.path.join(root, dp)) else dp.rsplit("/", 1)[-1]
+    rels = []   # like the desktop: the prefix's files, plus subfolders (pictures)
+    for base, _dirs, names in os.walk(os.path.join(root, d)):
+        for n in names:
+            rels.append(os.path.relpath(os.path.join(base, n), os.path.join(root, d)).replace(os.sep, "/"))
+    for f in sorted(rels):
+        if prefix and not f.startswith(prefix) and "/" not in f:
             continue
+        full = os.path.join(root, d, f)
+        if "/" in f:
+            sub = acc + "/" + d.strip("/")
+            for part in f.split("/")[:-1]:
+                sub += "/" + part
+                raw("MKCOL", f"{dav}/{sub}", user, pw)
         data = open(full, "rb").read()
         st, _ = raw("PUT", f"{dav}/{acc}/{d}{f}", user, pw, data)
         assert st in (201, 204), (st, f)
@@ -64,7 +74,7 @@ if not args.password:   # an existing user keeps their password
 rv.call("GET", "/apps/phos/api/v1/status", user, pw)
 hlc = "1791200000000-0000-bbbbbbbbbbbbbbbb"
 changes = []
-confs = [] if args.password else [(FIX, c) for c in ("tinyz.conf", "tinyplan.conf", "tinylex_zld.conf")]
+confs = [] if args.password else [(FIX, c) for c in ("tinyz.conf", "tinyplan.conf", "tinylex_zld.conf", "tinybook.conf")]
 if args.sword:
     want = {m.strip().lower() for m in args.modules.split(",") if m.strip()}
     for c in sorted(os.listdir(os.path.join(args.sword, "mods.d"))):

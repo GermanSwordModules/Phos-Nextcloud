@@ -26,4 +26,11 @@ export {
 	mdiAccount as iconPerson,
 	mdiCalendarToday as iconToday,
 	mdiHomeOutline as iconReading,
+	mdiBookshelf as iconLibrary,
+	mdiCommentTextMultipleOutline as iconCommentary,
+	mdiBookOutline as iconBook,
+	mdiBookAlphabet as iconDictionary,
+	mdiMapOutline as iconMap,
+	mdiChevronDown as iconExpand,
+	mdiFileTreeOutline as iconToc,
 } from '@mdi/js'

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osis xmlns="http://www.bibletechnologies.net/2003/OSIS/namespace"><osisText osisIDWork="TINYBOOK" xml:lang="de"><header><work osisWork="TINYBOOK"/></header>
+<div type="book" osisID="Vorwort"><p>Ein kleines Buch für die Tests.</p></div>
+<div type="book" osisID="Teil Eins"><p>Über den ersten Teil.</p>
+<div type="chapter" osisID="Kapitel 1"><p>Erstes Kapitel. <figure src="images/bild.png"/></p></div>
+<div type="chapter" osisID="Kapitel 2"><p>Zweites Kapitel, siehe <reference osisRef="John.3.16">Joh 3,16</reference>.</p></div>
+</div>
+<div type="book" osisID="Anhang"><p>Zum Schluss.</p></div>
+</osisText></osis>

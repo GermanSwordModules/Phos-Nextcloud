@@ -83,6 +83,9 @@ class SwordTest extends TestCase {
 		$this->assertNull($m->dictEntry('G27'));
 		$this->assertSame(['ABRAHAM', 'ABRAM', 'G0025'], $m->dictKeys('ab', 3));
 		$this->assertSame(['ZION'], $m->dictKeys('Y', 5));
+		$this->assertSame(['ABRAHAM', 'ABRAM'], $m->dictKeys('G0025', 2, true));
+		$this->assertSame([], $m->dictKeys('', 5, true));
+		$this->assertSame(['G0025'], $m->dictKeys('g25', 1));
 	}
 
 	public function testStrongsPad(): void {
@@ -132,5 +135,35 @@ class SwordTest extends TestCase {
 		$this->assertSame("line one\nline two", $c->get('About'));
 		$this->assertSame(['StrongsNumbers', 'GreekDef'], $c->all('Feature'));
 		$this->assertSame('modules/x/', $c->dataPath());
+	}
+	public function testGeneralBook(): void {
+		$m = self::module('tinybook');
+		$this->assertSame(SwordModule::GENBOOK, $m->kind);
+		$this->assertSame('Generic Books', $m->info()['category']);
+		$top = $m->toc('/');
+		$this->assertSame(['Vorwort', 'Teil Eins', 'Anhang'], array_column($top['children'], 'name'));
+		$this->assertSame([false, true, false], array_column($top['children'], 'children'));
+		$this->assertSame(['/Teil Eins/Kapitel 1', '/Teil Eins/Kapitel 2'], array_column($m->toc('/Teil Eins')['children'], 'path'));
+
+		// the root stands for the first entry; reading order is depth first
+		$first = $m->bookEntry('/');
+		$this->assertSame('/Vorwort', $first['path']);
+		$this->assertSame('<p>Ein kleines Buch für die Tests.</p>', $first['text']);
+		$this->assertNull($first['prev']);
+		$this->assertSame('/Teil Eins', $first['next']);
+		$k2 = $m->bookEntry('/teil eins/Kapitel 2');     // names match case-insensitively as a fallback
+		$this->assertSame('/Teil Eins/Kapitel 2', $k2['path']);
+		$this->assertStringContainsString('<reference osisRef="John.3.16">Joh 3,16</reference>', $k2['text']);
+		$this->assertSame('/Teil Eins/Kapitel 1', $k2['prev']);
+		$this->assertSame('/Anhang', $k2['next']);
+		$this->assertSame(['/Teil Eins'], $k2['trail']);
+		$this->assertSame('/Teil Eins/Kapitel 2', $m->bookEntry('/Anhang')['prev']);
+		$this->assertNull($m->bookEntry('/Anhang')['next']);
+
+		$this->assertSame('modules/genbook/rawgenbook/tinybook/images/bild.png', $m->resolveFile('/images/bild.png'));
+		$this->assertNull($m->resolveFile('../../../mods.d/tinybook.conf'));
+		$this->assertNull($m->resolveFile('images/fehlt.png'));
+		$this->expectException(\OCA\Phos\Service\Sword\SwordException::class);
+		$m->toc('/Gibt es nicht');
 	}
 }

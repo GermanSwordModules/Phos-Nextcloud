@@ -25,7 +25,11 @@ function prepare(markup) {
 
 let noteSeq = 0
 
-export function render(markup, { sourceType = 'OSIS', noteLabels = 'abcdefghijklmnopqrstuvwxyz' } = {}) {
+/**
+ * `picture(src)` turns a picture's src as the module writes it into a URL to
+ * show, or null; without it pictures are left out.
+ */
+export function render(markup, { sourceType = 'OSIS', noteLabels = 'abcdefghijklmnopqrstuvwxyz', picture = null } = {}) {
 	const out = { html: '', headings: [], notes: [] }
 	if (!markup) {
 		return out
@@ -151,9 +155,13 @@ export function render(markup, { sourceType = 'OSIS', noteLabels = 'abcdefghijkl
 		case 'script':
 		case 'style':
 			return ''
-		case 'sync':
 		case 'figure':
-		case 'img':
+		case 'img': {
+			const url = picture && attr(n, 'src') ? picture(attr(n, 'src')) : null
+			// void in ThML/HTML: when written unclosed, what follows ends up inside
+			return (url ? `<img class="phos-img" src="${esc(url)}" alt="" loading="lazy">` : '') + kids()
+		}
+		case 'sync':
 		case 'hr':
 			// void in ThML/HTML: when written unclosed, what follows ends up inside
 			return kids()
