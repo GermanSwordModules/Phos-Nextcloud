@@ -233,6 +233,10 @@ final class SwordModule {
 	 */
 	public function dictKeys(string $from, int $n, bool $before = false): array {
 		$lex = $this->lexStore();
+		// as in dictEntry: "G26" lists from "00026" where the lexicon keys bare numbers
+		if (preg_match('/^[GHgh](\d+[a-zA-Z]?)$/', $from, $m) && $lex->find($from) === null && $lex->find($m[1]) !== null) {
+			$from = $m[1];
+		}
 		$out = [];
 		$i = $lex->seek($from);
 		$end = $before ? $i : $lex->count();

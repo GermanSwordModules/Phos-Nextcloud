@@ -27,9 +27,9 @@
 				<li v-for="k in keys"
 					:key="k"
 					role="option"
-					:aria-selected="k === key"
+					:aria-selected="isCurrent(k)"
 					class="dict__key"
-					:class="{ 'dict__key--current': k === key }"
+					:class="{ 'dict__key--current': isCurrent(k) }"
 					@click="open(k)">
 					{{ k }}
 				</li>
@@ -85,6 +85,9 @@ const moduleSel = computed({
 	set: o => { prefs.set('dict', o.id); router.push({ name: 'dict', params: { module: o.id } }) },
 })
 const key = computed(() => route.params.key || '')
+// "G0026" opens the lexicon's "00026" where it keys bare numbers
+const bare = k => String(k).replace(/^[GHgh](?=\d)/, '').replace(/^0+/, '')
+const isCurrent = k => k === key.value || (/^[GHgh]?\d/.test(key.value) && bare(k) === bare(key.value))
 
 const keys = ref([])
 const atEnd = ref(false)
@@ -165,7 +168,7 @@ watch(moduleName, async name => {
 
 watch(key, async k => {
 	showEntry()
-	if (k && !keys.value.includes(k)) {
+	if (k && !keys.value.some(isCurrent)) {
 		await loadKeys(k)
 	}
 	await nextTick()
