@@ -75,7 +75,7 @@ forever.
 
 Keys follow Phos-Sync v1: `bm:<id>`, `label:<name>` (labels are matched **by
 name**; integer label ids are device-local), `setting:<section>.<key>`,
-`plan:<module>`, `ws:<name>`, `project:<uuid>`, … The key is opaque to the
+`plan:<module>`, `ws:<id>` (until 2026-10: `ws:<name>`), `project:<uuid>`, … The key is opaque to the
 server; `type` decides the merge policy.
 
 Each user owns exactly one `personal` collection, created on first use. A
