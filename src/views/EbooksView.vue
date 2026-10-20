@@ -25,6 +25,7 @@
 					</template>
 				</NcButton>
 				<strong class="ebooks__title">{{ info.Title || book.ref }}</strong>
+				<ShareButton type="ebook" :record-key="book.key" :collection="book.collection" :title="info.Title || book.ref" />
 				<template v-if="book.format === 'epub'">
 					<NcSelect v-if="toc.length"
 						v-model="chapter"
@@ -69,6 +70,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { mdiArrowLeft } from '@mdi/js'
 import { ebooks, ebookFileUrl, ebookInfo, ebookPosition, setEbookPosition } from '../services/docs.js'
+import ShareButton from '../components/ShareButton.vue'
 
 const iconBack = mdiArrowLeft
 const route = useRoute()

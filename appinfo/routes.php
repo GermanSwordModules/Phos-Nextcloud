@@ -41,5 +41,9 @@ return [
 		['name' => 'reader#media', 'url' => '/api/v1/media/{book}/{chapter}', 'verb' => 'GET'],
 		['name' => 'reader#search', 'url' => '/api/v1/modules/{module}/search', 'verb' => 'GET'],
 		['name' => 'reader#bookEntry', 'url' => '/api/v1/modules/{module}/book', 'verb' => 'GET'],
+		// phone remote for a deck shown in the web (W-6)
+		['name' => 'remote#get', 'url' => '/api/v1/remote', 'verb' => 'GET'],
+		['name' => 'remote#command', 'url' => '/api/v1/remote/cmd', 'verb' => 'POST'],
+		['name' => 'remote#state', 'url' => '/api/v1/remote/state', 'verb' => 'POST'],
 	],
 ];

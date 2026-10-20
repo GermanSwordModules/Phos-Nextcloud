@@ -112,6 +112,9 @@
         "text"
       ]
     },
+    "presTheme": {
+      "policy": "lww"
+    },
     "presAssets": {
       "policy": "lww"
     },

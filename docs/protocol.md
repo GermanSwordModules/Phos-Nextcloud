@@ -338,6 +338,23 @@ requests answer 422. Errors: 404 unknown module/entry, 422 unreadable
 (locked, wrong key, no such chapter, files missing). Results are cached per
 manifest revision (and per key for ciphered modules).
 
+## 13. Deck media and phone remote (W-6)
+
+**Media from elsewhere.** A deck's pictures outside its own folder and its
+non built-in themes (with their background and logo files) are copied by the
+desktop into `Phos/Praesentationen/<uuid>/_ext/` — part of the deck's
+`presAssets` set — with `_ext/index.json`:
+`{"files": {"<path as the deck names it, / separators>": "<file in _ext/>"}, "themes": {"<name>": <theme>}}`.
+The deck keeps its original paths; readers fall back to the copy when the
+original is not there. User themes themselves sync as `presTheme:<name>`
+(the theme JSON, lww).
+
+**Phone remote.** Per user, nothing shared (OCS, base as above):
+
+- `POST /remote/state` from the presenting page: `{deck, title, idx, total, black, notes, slides[]}`; `{}` clears it.
+- `POST /remote/cmd` from the phone: `{action: next|prev|first|last|goto|black, slide?}` → `{seq, action, slide, at}`.
+- `GET /remote` → `{cmd, state, now}`; the presenting page applies commands with a `seq` above the last it saw.
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

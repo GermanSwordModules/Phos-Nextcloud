@@ -10,7 +10,10 @@
 					{{ t('phos', 'Projects') }}
 				</router-link>
 			</p>
-			<h2>{{ ref_ }}{{ ex.title && ex.title !== ref_ ? ' — ' + ex.title : '' }}</h2>
+			<div class="phos-titlerow">
+				<h2>{{ ref_ }}{{ ex.title && ex.title !== ref_ ? ' — ' + ex.title : '' }}</h2>
+				<ShareButton type="pericope" :record-key="ex.key" :collection="ex.collection" :title="ex.title || ref_" />
+			</div>
 			<p class="exegesis__meta">
 				<a v-if="book" href="#" @click.prevent="openBible">{{ t('phos', 'Read in {module}', { module: bible }) }}</a>
 				<span v-if="comments.length">{{ t('phos', 'Commentaries: {list}', { list: comments.join(', ') }) }}</span>
@@ -46,6 +49,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { defaultBible, lang, modules } from '../services/phos.js'
 import { exegeses, projects, sermons, pericopeRef, bookOfIndex, fullPayload, deskDate } from '../services/docs.js'
 import { rtfToHtml } from '../docs/rtf.js'
+import ShareButton from '../components/ShareButton.vue'
 
 const route = useRoute()
 const router = useRouter()

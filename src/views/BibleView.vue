@@ -46,7 +46,7 @@
 					<NcIconSvgWrapper :path="iconNext" />
 				</template>
 			</NcButton>
-			<NcCheckboxRadioSwitch v-model="versePerLine" type="switch" class="bible__vpl">
+			<NcCheckboxRadioSwitch v-model="versePerLine" type="switch" class="bible__vpl" :title="t('phos', 'Verse per line')">
 				{{ t('phos', 'Verse per line') }}
 			</NcCheckboxRadioSwitch>
 		</div>
@@ -689,6 +689,73 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 	&__sidebar {
 		padding: 0 10px;
+	}
+}
+
+/* W-8 phones: a compact toolbar, a parallel text under each verse */
+@media (max-width: 600px) {
+	.bible {
+		padding: 4px 10px 32px;
+
+		&__bar {
+			margin-inline-start: 40px;
+			gap: 6px;
+		}
+
+		&__module {
+			min-width: 0 !important;
+			flex: 1 1 calc(50% - 6px);
+			max-width: none;
+		}
+
+		&__goto {
+			flex: 1 1 100%;
+			max-width: none;
+		}
+
+		&__nav {
+			flex-wrap: nowrap;
+			gap: 2px;
+		}
+
+		&__book {
+			min-width: 0 !important;
+			flex: 1 1 0;
+		}
+
+		&__chapter {
+			min-width: 0 !important;
+			flex: 0 0 92px;
+			width: 92px;
+		}
+
+		&__nav > * {
+			flex-shrink: 1;
+		}
+
+		&__nav > button {
+			flex: 0 0 auto;
+		}
+
+		/* the switch keeps only its knob; its label is the tooltip */
+		&__vpl :deep(.checkbox-content__text) {
+			display: none;
+		}
+
+		&__row {
+			grid-template-columns: 1fr;
+
+			&--head {
+				display: none;
+			}
+		}
+
+		&__text--parallel &__cell + &__cell {
+			margin: 2px 0 6px;
+			padding-inline-start: 8px;
+			border-inline-start: 3px solid var(--color-border-dark);
+			color: var(--color-text-maxcontrast);
+		}
 	}
 }
 </style>

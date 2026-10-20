@@ -136,6 +136,17 @@ body[data-themes*='dark'] #phos {
 	}
 }
 
+/* W-8 phones: only the title row keeps clear of the navigation toggle */
+@media (max-width: 600px) {
+	.phos-page {
+		padding: 8px 12px 32px;
+
+		> :first-child {
+			margin-inline-start: 40px;
+		}
+	}
+}
+
 .phos-chip {
 	display: inline-flex;
 	align-items: center;
@@ -168,5 +179,17 @@ body[data-themes*='dark'] #phos {
 
 	h3, h4 {
 		margin: .8em 0 .3em;
+	}
+}
+
+/* a page title with an action next to it (Share …) */
+.phos-titlerow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 12px;
+
+	h2 {
+		margin: 0;
 	}
 }

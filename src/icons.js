@@ -37,4 +37,5 @@ export {
 	mdiFolderOutline as iconProjects,
 	mdiPresentation as iconDecks,
 	mdiBookOpenVariant as iconEbooks,
+	mdiCellphoneLink as iconRemote,
 } from '@mdi/js'

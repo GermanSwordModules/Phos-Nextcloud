@@ -1,5 +1,13 @@
 <template>
-	<div class="reading">
+	<div class="reading" :class="'reading--' + pane">
+		<div class="reading__switch" role="tablist">
+			<button type="button" role="tab" :aria-selected="pane === 'bible'" @click="pane = 'bible'">
+				{{ t('phos', 'Bible') }}
+			</button>
+			<button type="button" role="tab" :aria-selected="pane === 'side'" @click="pane = 'side'">
+				{{ t('phos', 'Today and more') }}
+			</button>
+		</div>
 		<BibleView class="reading__bible" @position="p => pos = p" />
 		<aside class="reading__side" :aria-label="t('phos', 'Bible reading')">
 			<section v-if="desktopPositions.length" class="reading__section">
@@ -49,8 +57,11 @@ const route = useRoute()
 const router = useRouter()
 const pos = ref(null)
 const mediaCount = ref(0)
+// phones show one of the two at a time
+const pane = ref('bible')
 
 function openPassage(p) {
+	pane.value = 'bible'
 	const query = p.v1 ? { v: p.v1 } : {}
 	if (route.query.p) {
 		query.p = route.query.p
@@ -70,6 +81,10 @@ function openRef(ref) {
 .reading {
 	display: flex;
 	align-items: flex-start;
+
+	&__switch {
+		display: none;
+	}
 
 	&__bible {
 		flex: 1 1 auto;
@@ -112,6 +127,51 @@ function openRef(ref) {
 			border-left: none;
 			border-top: 1px solid var(--color-border);
 			padding-left: 50px;
+		}
+	}
+}
+
+@media (max-width: 600px) {
+	.reading {
+		position: relative;
+
+		&__switch {
+			display: flex;
+			gap: 4px;
+			margin: 6px 12px 0 52px;
+			padding: 3px;
+			border-radius: var(--border-radius-pill, 20px);
+			background: var(--color-background-dark);
+
+			button {
+				all: unset;
+				flex: 1;
+				text-align: center;
+				padding: 6px 8px;
+				border-radius: var(--border-radius-pill, 20px);
+				cursor: pointer;
+
+				&[aria-selected="true"] {
+					background: var(--color-main-background);
+					font-weight: bold;
+					box-shadow: 0 1px 3px var(--color-box-shadow);
+				}
+			}
+		}
+
+		&__side {
+			border-top: none;
+			padding: 8px 12px 24px;
+		}
+
+		&--bible &__side,
+		&--side &__bible {
+			display: none;
+		}
+
+		/* the switch row clears the navigation toggle already */
+		&__bible :deep(.bible__bar) {
+			margin-inline-start: 0;
 		}
 	}
 }

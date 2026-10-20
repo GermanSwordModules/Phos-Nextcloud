@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { rtfToHtml } from './rtf.js'
-import { renderDeck, bulletsHtml, slideTextHtml, applyVerseSteps, parseOsisRange, themeVars, THEMES } from './deck.js'
+import { renderDeck, bulletsHtml, slideTextHtml, applyVerseSteps, parseOsisRange, themeVars, deckLogo, THEMES } from './deck.js'
 
 // the shape RichMemo writes (desktop exegesis)
 const RTF = String.raw`{\rtf1\ansi\ansicp1252\deff0\deflan1033{\fonttbl{\f0\fcharset0 Noto Sans;}}{\colortbl;\red136\green136\blue136;}`
@@ -84,4 +84,22 @@ test('deck: the desktop deck renders to sections with the desktop markup', async
 	const v = themeVars(THEMES.Dunkel)
 	assert.equal(v['--pres-bg'], THEMES.Dunkel.bg)
 	assert.equal(v['--pres-base-size'], THEMES.Dunkel.baseSize + 'pt')
+})
+
+test('deck: theme background picture and logo, as far as they reached the server', async () => {
+	const t = { ...THEMES.Hell, bgMode: 'image', bgImage: '/home/j/Bilder/grund.jpg', logo: 'C:\\Logos\\ort.png', logoCorner: 'br', logoHeight: 0, logoOpacity: 60 }
+	const have = { '/home/j/Bilder/grund.jpg': '/f/grund.jpg', 'C:\\Logos\\ort.png': '/f/o"rt.png' }
+	const img = p => have[p] || null
+	assert.equal(themeVars(t, img)['--pres-bg-image'], 'url("/f/grund.jpg")')
+	assert.equal(themeVars(t, () => null)['--pres-bg-image'], 'none', 'missing picture: the flat colour, like the desktop')
+	assert.equal(themeVars(t)['--pres-bg-image'], 'none')
+	assert.equal(themeVars(t, img)['--pres-logo-opacity'], '0.6')
+	assert.deepEqual(deckLogo(t, img), { url: '/f/o"rt.png', cls: 'phos-logo-br', height: 8 })
+	assert.equal(deckLogo({ ...t, logoCorner: 'none' }, img), null)
+	assert.equal(deckLogo(t, () => null), null)
+	// a slide's own theme comes from io.theme (user themes, the deck's copies)
+	const own = { ...THEMES.Hell, bg: '#010203' }
+	const [, s2] = await renderDeck({ slides: [{ id: 'a', blocks: [] }, { id: 'b', theme: 'Eigen', blocks: [] }] },
+		{ passage: async () => null, image: img, theme: n => (n === 'Eigen' ? own : THEMES.Hell), sanitize: x => x })
+	assert.match(s2, /data-theme="Eigen" style="[^"]*--pres-bg:#010203/)
 })

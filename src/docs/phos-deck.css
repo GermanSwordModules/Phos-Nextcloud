@@ -355,3 +355,18 @@
      threw away the vertical centring of title slides). */
   .reveal .phos-capture { max-height: none; }
 }
+
+/* ---- web: logo overlay of the deck host (desktop DeckChrome) --------- */
+/* absolute, not fixed: the deck sits inside the page, not the viewport */
+.phos-deckhost { position: relative; }
+.phos-deckhost > .phos-deck-logo {
+  position: absolute;
+  z-index: 40;
+  opacity: var(--pres-logo-opacity);
+  pointer-events: none;
+}
+.phos-deckhost > .phos-deck-logo img { display: block; height: 100%; width: auto; }
+.phos-deckhost > .phos-deck-logo.phos-logo-tl { top: 2%; left: 2%; }
+.phos-deckhost > .phos-deck-logo.phos-logo-tr { top: 2%; right: 2%; }
+.phos-deckhost > .phos-deck-logo.phos-logo-bl { bottom: 2%; left: 2%; }
+.phos-deckhost > .phos-deck-logo.phos-logo-br { bottom: 2%; right: 2%; }

@@ -155,12 +155,21 @@ export function parseOsisRange(osis) {
 	return r
 }
 
-/** Theme tokens → CSS custom properties (desktop ThemeVars). */
-export function themeVars(t = {}) {
+/**
+ * Theme tokens → CSS custom properties (desktop ThemeVars).
+ * @param {object} t theme
+ * @param {(path:string) => string|null} [image] URL of the background picture; none → flat colour like the desktop
+ */
+export function themeVars(t = {}, image = null) {
 	const c = (v, d) => (v && String(v).trim()) || d
 	let bg = 'none'
 	if (t.bgMode === 'gradient') {
 		bg = `linear-gradient(160deg,${c(t.bg, '#ffffff')} 0%,${c(t.bgStop2, t.bg || '#ffffff')} 100%)`
+	} else if (t.bgMode === 'image' && t.bgImage && image) {
+		const url = image(t.bgImage)
+		if (url) {
+			bg = `url("${url.replace(/["\\\n]/g, '')}")`
+		}
 	}
 	return {
 		'--pres-bg': c(t.bg, '#ffffff'),
@@ -173,7 +182,6 @@ export function themeVars(t = {}) {
 		'--pres-body-font': c(t.bodyFont, 'Arial, sans-serif'),
 		'--pres-verse-font': c(t.verseFont, 'Georgia, serif'),
 		'--pres-base-size': (t.baseSize > 0 ? t.baseSize : 28) + 'pt',
-		// a background picture lives on the desktop's disk only
 		'--pres-bg-image': bg,
 		'--pres-logo-opacity': String((t.logoOpacity ?? 100) / 100),
 	}
@@ -181,12 +189,21 @@ export function themeVars(t = {}) {
 
 export const themeOf = name => THEMES[name] || THEMES.Hell
 
+const CORNERS = { tl: 'phos-logo-tl', tr: 'phos-logo-tr', bl: 'phos-logo-bl', br: 'phos-logo-br' }
+/** The theme's logo overlay (desktop DeckChrome), or null. */
+export function deckLogo(t = {}, image = null) {
+	const corner = CORNERS[t.logoCorner]
+	const url = corner && t.logo && image ? image(t.logo) : null
+	return url ? { url, cls: corner, height: (t.logoHeight > 0 ? t.logoHeight : 8) } : null
+}
+
 /**
  * @param {object} deck the desktop deck {title, theme, slides:[{id,title,notes,layout,theme,blocks}]}
  * @param {object} io
  * @param {(module:string, osis:string, opts:{strongs:boolean}) => Promise<{html:string, ref:string, rtl?:boolean}|null>} io.passage
  *        verses as `<span class="verse" id="vC_V"><span class="phos-vnum">V</span>…</span> `
  * @param {(path:string) => string|null} io.image URL for a block's picture, or null (missing)
+ * @param {(name:string) => object} [io.theme] a theme by name (default: the built-ins)
  * @param {(html:string) => string} io.sanitize clean frozen HTML (capture blocks)
  * @returns {Promise<string[]>} one <section> per slide
  */
@@ -279,7 +296,7 @@ async function renderSlide(s, idx, io) {
 	const lay = s.layout === 'cols2' ? ' phos-cols2' : s.layout === 'cols3' ? ' phos-cols3' : ''
 	let style = ''
 	if (s.theme) {
-		const vars = themeVars(themeOf(s.theme))
+		const vars = themeVars(io.theme ? io.theme(s.theme) : themeOf(s.theme), io.image)
 		style = ` data-theme="${esc(s.theme)}" style="${esc(Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';'))}"`
 	}
 	let h = `<section data-slide="${esc(s.id)}" data-idx="${idx}" class="${cls}"${style}><div class="phos-slidebody${lay}">${body}</div>`

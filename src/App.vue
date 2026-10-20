@@ -1,6 +1,6 @@
 <template>
 	<NcContent app-name="phos">
-		<NcAppNavigation :aria-label="t('phos', 'Phos navigation')">
+		<NcAppNavigation v-if="!route.meta.bare" :aria-label="t('phos', 'Phos navigation')">
 			<template #list>
 				<NcAppNavigationItem v-for="item in nav"
 					:key="item.to"
@@ -50,8 +50,10 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { showError, showWarning } from '@nextcloud/dialogs'
 import { engine, state, start, loadModules } from './services/phos.js'
+import { useRoute } from 'vue-router'
 import * as I from './icons.js'
 
+const route = useRoute()
 const iconSync = I.iconSync
 const iconOffline = I.iconOffline
 const startError = ref('')
@@ -68,6 +70,7 @@ const nav = computed(() => [
 	{ to: '/sermons', name: t('phos', 'Sermons'), icon: I.iconSermon },
 	{ to: '/projects', name: t('phos', 'Projects'), icon: I.iconProjects },
 	{ to: '/decks', name: t('phos', 'Presentations'), icon: I.iconDecks },
+	{ to: '/remote', name: t('phos', 'Remote'), icon: I.iconRemote },
 	{ to: '/ebooks', name: t('phos', 'E-books'), icon: I.iconEbooks },
 	{ to: '/shared', name: t('phos', 'Shared'), icon: I.iconShared },
 	{ to: '/conflicts', name: t('phos', 'Conflicts'), icon: I.iconConflicts, count: state.conflicts?.length || 0, highlight: true },

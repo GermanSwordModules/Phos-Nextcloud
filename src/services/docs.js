@@ -6,6 +6,7 @@ import { engine, newId, getChapter, modules, lang } from './phos.js'
 import { KJV_ORDER, formatRef, parseRef } from '../bible/books.js'
 import { render } from '../bible/render.js'
 import { MAX_PRES_VERSES, parseOsisRange } from '../docs/deck.js'
+import { THEMES } from '../docs/themes.js'
 
 /*
  * W-5/W-6: the desktop's documents as the web sees them (records synced from
@@ -14,7 +15,9 @@ import { MAX_PRES_VERSES, parseOsisRange } from '../docs/deck.js'
  *   sermon        sermon:<uuid>        the sermon JSON (editable here)
  *   pericope      pericope:<uuid>      exegesis: index row + rtf + state
  *   project       project:<uuid>       index row + project + notesRtf + synthesisRtf + findings
- *   presentation  presentation:<uuid>  index row + deck
+ *   presentation  presentation:<uuid>  index row + deck; media in Phos/Praesentationen/<uuid>/,
+ *                                      pictures from elsewhere + user themes in its _ext/ (index.json)
+ *   presTheme     presTheme:<name>     a user theme (desktop presentations/themes/<name>.json)
  *   ebook         ebook:<ref>          manifest {files:[{p,s,h}], total}; files in Phos/E-Books/<ref>/
  *
  * Records over ~1 MB arrive as {"$file": "Phos/.records/…"} and are fetched.
@@ -180,15 +183,48 @@ export async function deckPassage(module, osis) {
 	return html ? { html, ref, rtl: meta.direction === 'RtoL' } : null
 }
 
+const extCache = new Map()
+/**
+ * What the desktop copied into the deck's _ext/ folder (BVC
+ * TPresentationStore.MirrorExternalMedia): {files: {<desktop path>: <name>},
+ * themes: {<name>: theme}}; empty when the deck has none.
+ */
+export function deckExtras(deck) {
+	const k = `${deck.collection}|${deck.id}|${deck.rec?.rev || ''}`
+	if (!extCache.has(k)) {
+		extCache.set(k, axios.get(phosFileUrl(deck.collection, `Praesentationen/${deck.id}/_ext/index.json`))
+			.then(r => ({ files: r.data?.files || {}, themes: r.data?.themes || {} }))
+			.catch(() => ({ files: {}, themes: {} })))
+	}
+	return extCache.get(k)
+}
+
 /**
  * A picture of a deck, as the desktop names it (an absolute path on its disk):
  * one in the deck's own media folder travels with the deck (presAssets,
- * Phos/Praesentationen/<deck>/…); anything else is not on the server.
+ * Phos/Praesentationen/<deck>/…), one from elsewhere as its copy in _ext/;
+ * anything else is not on the server.
  */
-export function deckImageUrl(deck, path) {
+export function deckImageUrl(deck, path, extras = null) {
 	const p = String(path || '').replace(/\\/g, '/')
+	if (!p) {
+		return null
+	}
 	const m = new RegExp(`/${deck.id}/(.+)$`, 'i').exec(p)
-	return m ? phosFileUrl(deck.collection, `Praesentationen/${deck.id}/${m[1]}`) : null
+	if (m) {
+		return phosFileUrl(deck.collection, `Praesentationen/${deck.id}/${m[1]}`)
+	}
+	const name = extras?.files?.[p]
+	return name ? phosFileUrl(deck.collection, `Praesentationen/${deck.id}/_ext/${name}`) : null
+}
+
+/** The user's own themes (presTheme records), by name. */
+export const userThemes = computed(() => Object.fromEntries(list('presTheme')
+	.filter(t => t.p && typeof t.p === 'object').map(t => [t.id, t.p])))
+
+/** A deck's theme as the desktop would pick it: own theme, the deck's copy, built-in. */
+export function deckTheme(name, extras = null) {
+	return userThemes.value[name] || extras?.themes?.[name] || THEMES[name] || THEMES.Hell
 }
 
 export const cleanHtml = html => DOMPurify.sanitize(String(html || ''), {

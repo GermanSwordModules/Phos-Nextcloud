@@ -320,8 +320,13 @@ watch(query, () => { noteLimit.value = 100 })
 .search {
 	&__tabs {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
 		margin-bottom: 10px;
+
+		:deep(.button-vue__text) {
+			white-space: normal;
+		}
 	}
 
 	&__bar {

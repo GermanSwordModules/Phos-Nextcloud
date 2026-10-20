@@ -33,7 +33,10 @@
 				</template>
 			</nav>
 			<article v-if="current" class="projects__doc">
-				<h2>{{ current.title }}</h2>
+				<div class="phos-titlerow">
+					<h2>{{ current.title }}</h2>
+					<ShareButton type="project" :record-key="current.key" :collection="current.collection" :title="current.title" />
+				</div>
 				<p class="projects__meta">
 					{{ [kindLabel(current.kind), current.status, current.category].filter(Boolean).join(' · ') }}
 				</p>
@@ -122,6 +125,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { lang } from '../services/phos.js'
 import { projects, exegeses, sermons, decks, pericopeRef, fullPayload } from '../services/docs.js'
 import { rtfToHtml } from '../docs/rtf.js'
+import ShareButton from '../components/ShareButton.vue'
 
 const route = useRoute()
 const router = useRouter()

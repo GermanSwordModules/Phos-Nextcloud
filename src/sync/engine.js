@@ -9,10 +9,11 @@ import { Hlc } from './hlc.js'
  * not yet confirmed; readers see pending over records. The outbox survives
  * reloads (storage); the records are pulled fresh on every start.
  */
-// workspace, pericope (exegesis), project, presentation, ebook: read only here;
-// readingPosition: books and e-books only (pos:mod:<module>, pos:ebook:<ref>)
+// workspace, pericope (exegesis), project, presentation, presTheme, ebook: read only here;
+// readingPosition: books and e-books only (pos:mod:<module>, pos:ebook:<ref>);
+// module, presAssets, projectOcc: only moved along when an item is shared (W-7)
 export const SYNC_TYPES = ['bookmark', 'label', 'planProgress', 'setting', 'sermon', 'workspace', 'readingPosition',
-	'pericope', 'project', 'presentation', 'ebook']
+	'pericope', 'project', 'presentation', 'presTheme', 'ebook', 'module', 'presAssets', 'projectOcc']
 
 const rk = (collection, type, key) => `${collection}\u0001${type}\u0001${key}`
 

@@ -12,14 +12,31 @@
 					:input-label="t('phos', 'Presentation')"
 					label="label"
 					class="decks__select" />
-				<NcButton :disabled="!ready" @click="fullscreen">
+				<NcButton :disabled="!ready" :title="t('phos', 'Present')" @click="fullscreen">
 					<template #icon>
 						<NcIconSvgWrapper :path="iconFullscreen" />
 					</template>
-					{{ t('phos', 'Present') }}
+					<span class="decks__lbl">{{ t('phos', 'Present') }}</span>
 				</NcButton>
+				<NcButton :disabled="!ready" :title="t('phos', 'Presenter view')" @click="openPresenter">
+					<template #icon>
+						<NcIconSvgWrapper :path="iconPresenter" />
+					</template>
+					<span class="decks__lbl">{{ t('phos', 'Presenter view') }}</span>
+				</NcButton>
+				<NcButton :disabled="!ready" :pressed="remoteOn" :title="t('phos', 'Phone remote')" @update:pressed="toggleRemote">
+					<template #icon>
+						<NcIconSvgWrapper :path="iconRemote" />
+					</template>
+					<span class="decks__lbl">{{ t('phos', 'Phone remote') }}</span>
+				</NcButton>
+				<ShareButton v-if="current" type="presentation" :record-key="current.key" :collection="current.collection" :title="current.title" />
 				<span v-if="ready" class="decks__pos">{{ t('phos', 'Slide {n} of {total}', { n: pos + 1, total }) }}</span>
 			</div>
+			<p v-if="remoteOn" class="decks__remote">
+				{{ t('phos', 'On your phone, open Phos in this Nextcloud with the same account and choose “Remote”:') }}
+				<a :href="remoteUrl" target="_blank" rel="noopener">{{ remoteUrl }}</a>
+			</p>
 			<NcLoadingIcon v-if="loading" />
 			<p v-if="error" class="decks__error">
 				{{ error }}
@@ -27,6 +44,9 @@
 			<div ref="host" class="phos-deckhost decks__stage" :style="hostVars" tabindex="0">
 				<div ref="revealEl" class="reveal">
 					<div class="slides" />
+				</div>
+				<div v-if="logo" class="phos-deck-logo" :class="logo.cls" :style="{ height: logo.height + '%' }">
+					<img :src="logo.url" alt="">
 				</div>
 			</div>
 			<p class="decks__hint">
@@ -41,22 +61,27 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
-import { mdiFullscreen } from '@mdi/js'
+import { mdiFullscreen, mdiMonitorEye, mdiCellphoneLink } from '@mdi/js'
 import 'reveal.js/reveal.css'
 import '../docs/phos-deck.css'
-import { decks, deckPassage, deckImageUrl, cleanHtml, fullPayload } from '../services/docs.js'
-import { renderDeck, themeOf, themeVars } from '../docs/deck.js'
-import { loadModules, modulesLoaded } from '../services/phos.js'
+import { decks } from '../services/docs.js'
+import { http } from '../services/api.js'
+import { loadDeck, mountReveal, currentNotes, deckChannel, applyGo, goMessage } from '../docs/useDeck.js'
+import { themeVars } from '../docs/deck.js'
+import ShareButton from '../components/ShareButton.vue'
 
 const iconFullscreen = mdiFullscreen
+const iconPresenter = mdiMonitorEye
+const iconRemote = mdiCellphoneLink
 const route = useRoute()
 const router = useRouter()
 
@@ -74,7 +99,7 @@ watch(() => [route.params.id, decks.value.length], () => {
 
 const host = ref(null)
 const revealEl = ref(null)
-const deckObj = shallowRef(null)
+const loaded = shallowRef(null)
 const reveal = shallowRef(null)
 const ready = ref(false)
 const loading = ref(false)
@@ -82,11 +107,16 @@ const error = ref('')
 const pos = ref(0)
 const total = ref(0)
 const notes = ref('')
+const black = ref(false)
 
-const hostVars = computed(() => themeVars(themeOf(deckObj.value?.theme || current.value?.theme)))
+const hostVars = computed(() => loaded.value?.vars || themeVars())
+const logo = computed(() => loaded.value?.logo || null)
 
+let channel = null
 async function destroy() {
 	ready.value = false
+	channel?.close()
+	channel = null
 	try {
 		reveal.value?.destroy()
 	} catch {
@@ -101,48 +131,47 @@ watch(() => current.value?.rec, async () => {
 	await destroy()
 	error.value = ''
 	notes.value = ''
+	black.value = false
 	const d = current.value
 	if (!d) {
 		return
 	}
 	loading.value = true
 	try {
-		if (!modulesLoaded.value) {
-			await loadModules()
-		}
-		const payload = await fullPayload(d.rec)
-		const deck = payload?.deck || payload || {}
-		deckObj.value = deck
-		const sections = await renderDeck(deck, {
-			passage: (m, osis) => deckPassage(m, osis),
-			image: p => deckImageUrl(d, p),
-			sanitize: cleanHtml,
-		})
+		const l = await loadDeck(d)
 		if (s !== seq) {
 			return
 		}
-		await nextTick()
-		revealEl.value.querySelector('.slides').innerHTML = sections.join('')
-		const { default: Reveal } = await import('reveal.js')
-		const r = new Reveal(revealEl.value, {
-			embedded: true, hash: false, history: false, controls: true, progress: true, center: false,
-			transition: 'slide', width: 1280, height: 720, margin: 0.06, minScale: 0.2, maxScale: 2.0,
-			keyboard: true, overview: true, slideNumber: false,
-		})
-		await r.initialize()
+		loaded.value = l
+		const r = await mountReveal(revealEl.value, l.sections)
 		if (s !== seq) {
 			r.destroy()
 			return
 		}
 		reveal.value = r
+		channel = deckChannel(d.id, m => {
+			if (m.type === 'go') {
+				applyGo(r, m)
+			} else if (m.type === 'black') {
+				r.togglePause(!!m.on)
+			} else if (m.type === 'hello') {
+				channel.send(goMessage(r))
+				channel.send({ type: 'black', on: r.isPaused() })
+			}
+		})
 		const report = () => {
 			const cur = r.getCurrentSlide()
 			pos.value = cur ? parseInt(cur.getAttribute('data-idx') || '0', 10) : 0
 			total.value = r.getTotalSlides()
-			const aside = cur?.querySelector('aside.notes')
-			notes.value = aside ? aside.innerHTML : ''
+			notes.value = currentNotes(r)
+			channel?.send(goMessage(r))
+			publish()
 		}
 		r.on('slidechanged', report)
+		r.on('fragmentshown', () => channel?.send(goMessage(r)))
+		r.on('fragmenthidden', () => channel?.send(goMessage(r)))
+		r.on('paused', () => { black.value = true; channel?.send({ type: 'black', on: true }); publish() })
+		r.on('resumed', () => { black.value = false; channel?.send({ type: 'black', on: false }); publish() })
 		report()
 		ready.value = true
 		host.value?.focus()
@@ -164,8 +193,86 @@ function onFs() {
 	setTimeout(() => reveal.value?.layout(), 50)
 }
 document.addEventListener('fullscreenchange', onFs)
+
+function openPresenter() {
+	const url = generateUrl('/apps/phos/') + '#/presenter/' + encodeURIComponent(current.value.id)
+	window.open(url, 'phos-presenter-' + current.value.id, 'popup,width=1200,height=800')
+}
+
+// ---- phone remote (RemoteController): publish the state, poll for commands
+
+const remoteOn = ref(false)
+const remoteUrl = window.location.origin + generateUrl('/apps/phos/') + '#/remote'
+let remoteSeq = -1
+let remoteTimer = null
+let publishTimer = null
+
+function publish() {
+	if (!remoteOn.value || !reveal.value || !loaded.value) {
+		return
+	}
+	clearTimeout(publishTimer)
+	publishTimer = setTimeout(() => {
+		const l = loaded.value
+		http.post('/remote/state', {
+			deck: current.value?.title || '', title: l.titles[pos.value] || '', idx: pos.value, total: total.value,
+			black: black.value, notes: notes.value, slides: l.titles,
+		}).catch(() => {})
+	}, 150)
+}
+
+async function poll() {
+	const r = reveal.value
+	if (!remoteOn.value || !r) {
+		return
+	}
+	try {
+		const { cmd } = await http.get('/remote')
+		if (!cmd) {
+			remoteSeq = Math.max(remoteSeq, 0)   // nothing sent yet: the first one counts
+			return
+		}
+		if (cmd.seq <= remoteSeq) {
+			return
+		}
+		const first = remoteSeq < 0
+		remoteSeq = cmd.seq
+		if (first) {
+			return // what was sent before we listened
+		}
+		switch (cmd.action) {
+		case 'next': r.next(); break
+		case 'prev': r.prev(); break
+		case 'first': r.slide(0); break
+		case 'last': r.slide(r.getTotalSlides() - 1); break
+		case 'goto': r.slide(cmd.slide || 0); break
+		case 'black': r.togglePause(); break
+		}
+	} catch {
+		// offline for a moment: the next poll tries again
+	}
+}
+
+async function toggleRemote(on) {
+	remoteOn.value = on
+	clearInterval(remoteTimer)
+	remoteTimer = null
+	if (on) {
+		remoteSeq = -1
+		await poll()
+		remoteTimer = setInterval(poll, 700)
+		publish()
+	} else {
+		http.post('/remote/state', {}).catch(() => {})
+	}
+}
+
 onBeforeUnmount(() => {
 	document.removeEventListener('fullscreenchange', onFs)
+	if (remoteOn.value) {
+		toggleRemote(false)
+	}
+	clearTimeout(publishTimer)
 	seq++
 	destroy()
 })
@@ -183,6 +290,17 @@ onBeforeUnmount(() => {
 
 	&__select {
 		min-width: min(420px, 100%);
+	}
+
+	&__remote {
+		max-width: 1100px;
+		margin: 0 0 8px;
+		color: var(--color-text-maxcontrast);
+
+		a {
+			color: var(--color-primary-element);
+			text-decoration: underline;
+		}
 	}
 
 	&__pos, &__hint {
@@ -220,6 +338,16 @@ onBeforeUnmount(() => {
 
 	&__error {
 		color: var(--color-error);
+	}
+}
+
+@media (max-width: 600px) {
+	.decks__lbl {
+		display: none;
+	}
+
+	.decks__select {
+		min-width: 100%;
 	}
 }
 </style>

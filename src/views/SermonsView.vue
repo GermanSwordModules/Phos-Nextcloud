@@ -15,6 +15,7 @@
 				</template>
 				{{ t('phos', 'New sermon') }}
 			</NcButton>
+			<ShareButton v-if="current" type="sermon" :record-key="current.key" :collection="current.collection" :title="current.title" />
 		</div>
 		<NcEmptyContent v-if="!sermons.length" :name="t('phos', 'No sermons yet')" :description="t('phos', 'Sermons from the sermon builder of Phos Desktop appear here; you can also start one here.')" />
 		<form v-else-if="draft" class="sermon" @submit.prevent>
@@ -145,6 +146,7 @@ import {
 	exegeses, projects, decks, pericopeRef,
 } from '../services/docs.js'
 import { parseRef } from '../bible/books.js'
+import ShareButton from '../components/ShareButton.vue'
 import { iconAdd, iconDelete } from '../icons.js'
 
 const route = useRoute()

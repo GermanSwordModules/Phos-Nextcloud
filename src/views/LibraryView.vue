@@ -28,7 +28,7 @@
 							<span class="library__count">{{ l.modules.length }}</span>
 						</button>
 						<ul v-if="isOpen(l.id)" role="group">
-							<li v-for="m in l.modules" :key="m.name" role="treeitem">
+							<li v-for="m in l.modules" :key="m.name" role="treeitem" class="library__modrow">
 								<component :is="m.route && !m.locked ? 'router-link' : 'span'"
 									:to="m.route || undefined"
 									class="library__node library__node--module"
@@ -39,6 +39,12 @@
 									<span v-if="m.description && m.description !== m.name" class="library__name">{{ m.name }}</span>
 									<NcIconSvgWrapper v-if="m.shared" :path="iconPerson" :size="16" :title="t('phos', 'Shared with you')" />
 								</component>
+								<ShareButton v-if="m.collection && isMine(m.collection)"
+									compact
+									type="module"
+									:record-key="'module:' + m.name"
+									:collection="m.collection"
+									:title="m.description || m.name" />
 							</li>
 						</ul>
 					</li>
@@ -56,6 +62,8 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { modules, state, prefs, lang, LIBRARY_GROUPS, libraryGroup, moduleRoute } from '../services/phos.js'
 import * as I from '../icons.js'
+import { isMine } from '../services/share.js'
+import ShareButton from '../components/ShareButton.vue'
 
 /**
  * The library like the desktop's tree: group → language → module. Reading
@@ -103,7 +111,7 @@ const tree = computed(() => {
 		if (!g.has(code)) {
 			g.set(code, [])
 		}
-		g.get(code).push({ ...m, route: moduleRoute(m), shared: m.collection !== state.personal })
+		g.get(code).push({ ...m, route: moduleRoute(m), shared: !isMine(m.collection) })
 	}
 	const out = []
 	for (const [id, langs] of groups) {
@@ -187,6 +195,16 @@ function toggle(id) {
 		&--off {
 			cursor: default;
 			color: var(--color-text-maxcontrast);
+		}
+	}
+
+	&__modrow {
+		display: flex;
+		align-items: center;
+
+		> :first-child {
+			flex: 1;
+			min-width: 0;
 		}
 	}
 

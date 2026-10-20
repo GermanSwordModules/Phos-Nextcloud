@@ -423,3 +423,211 @@ test('e-books: list with title from book.conf, ePub reader with contents and sha
 	const conf = await request.fetch(src.replace('Fixture-PDF/book.pdf', 'Fixture-Buch/book.epub') + '?download=1', { headers: { Authorization: auth } })
 	expect(conf.headers()['content-disposition']).toMatch(/^attachment/)
 })
+
+// 1×1 PNGs (red, blue)
+const PNG_RED = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==', 'base64')
+const PNG_BLUE = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYPj/HwADAgH/5ncLrgAAAABJRU5ErkJggg==', 'base64')
+
+test('presentation: pictures from elsewhere and the user\'s themes (background, logo) come with the deck', async ({ page, request }) => {
+	const crypt = await import('node:crypto')
+	const id = uuid()
+	const auth = 'Basic ' + Buffer.from(`${user()}:${pw()}`).toString('base64')
+	const dav = (p, data) => request.fetch(`/remote.php/dav/files/${user()}/${p}`, { method: data ? 'PUT' : 'MKCOL', headers: { Authorization: auth }, data })
+	for (const p of ['Phos/', 'Phos/Praesentationen/', `Phos/Praesentationen/${id}/`, `Phos/Praesentationen/${id}/_ext/`]) {
+		await dav(p)
+	}
+	// what the desktop's MirrorExternalMedia writes
+	const index = JSON.stringify({
+		files: { '/home/jens/Bilder/Kreuz.png': 'aa11-Kreuz.png', '/home/jens/Bilder/grund.png': 'bb22-grund.png', 'C:/Logos/ort.png': 'cc33-ort.png' },
+		themes: { 'Nur im Deck': { ...{ name: 'Nur im Deck', bg: '#334455', fg: '#ffffff' }, bgMode: 'solid' } },
+	})
+	const files = []
+	for (const [p, data] of [['_ext/index.json', Buffer.from(index)], ['_ext/aa11-Kreuz.png', PNG_RED], ['_ext/bb22-grund.png', PNG_BLUE], ['_ext/cc33-ort.png', PNG_RED]]) {
+		expect((await dav(`Phos/Praesentationen/${id}/${p}`, data)).ok()).toBeTruthy()
+		files.push({ p, s: data.length, h: crypt.createHash('md5').update(data).digest('hex') })
+	}
+	await desktopPush(request, { type: 'presAssets', key: 'presAssets:' + id, payload: { files, total: files.reduce((a, f) => a + f.s, 0) } })
+	// the user's own theme, synced as presTheme
+	await desktopPush(request, { type: 'presTheme', key: 'presTheme:Gemeinde Ost', payload: {
+		name: 'Gemeinde Ost', bg: '#fefefe', fg: '#111111', accent: '#aa0000', bgMode: 'image', bgImage: '/home/jens/Bilder/grund.png',
+		logo: 'C:\\Logos\\ort.png', logoCorner: 'tr', logoHeight: 10, logoOpacity: 50,
+	} })
+	await desktopPush(request, { type: 'presentation', key: 'presentation:' + id, payload: {
+		uuid: id, title: 'E2E-Medien', kind: 'sermon', theme: 'Gemeinde Ost', created: 46315.3, modified: 46315.3,
+		deck: { uuid: id, title: 'E2E-Medien', kind: 'sermon', theme: 'Gemeinde Ost', slides: [
+			{ id: 'a', blocks: [{ kind: 'image', image: '/home/jens/Bilder/Kreuz.png', text: 'Das Kreuz' }] },
+			{ id: 'b', theme: 'Nur im Deck', blocks: [{ kind: 'title', text: 'Dunkle Folie' }] },
+		] },
+	} })
+	await page.goto(`/index.php/apps/phos/#/decks/${id}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	const stage = page.locator('.decks__stage')
+	const img = stage.locator('section.present .phos-image img')
+	await expect(img).toHaveAttribute('src', /\/_ext\/aa11-Kreuz\.png$/)
+	await expect.poll(() => img.evaluate(el => el.complete && el.naturalWidth)).toBe(1)
+	expect(await stage.evaluate(el => getComputedStyle(el).getPropertyValue('--pres-bg').trim())).toBe('#fefefe')
+	expect(await stage.evaluate(el => getComputedStyle(el).getPropertyValue('--pres-bg-image').trim())).toMatch(/_ext\/bb22-grund\.png/)
+	const logo = stage.locator('.phos-deck-logo.phos-logo-tr img')
+	await expect(logo).toHaveAttribute('src', /\/_ext\/cc33-ort\.png$/)
+	await expect.poll(() => logo.evaluate(el => el.complete && el.naturalWidth)).toBe(1)
+	await stage.focus()
+	await page.keyboard.press('ArrowRight')
+	// a theme the user does not have, carried by the deck
+	await expect(stage.locator('section.present[data-theme="Nur im Deck"]')).toHaveAttribute('style', /--pres-bg: ?#334455/)
+})
+
+test('presentation: presenter window and the deck follow each other; the phone remote steers', async ({ page, request }) => {
+	const id = uuid()
+	await desktopPush(request, { type: 'presentation', key: 'presentation:' + id, payload: {
+		uuid: id, title: 'E2E-Vortrag', kind: 'teaching', theme: 'Hell', created: 46315.3, modified: 46315.3,
+		deck: { uuid: id, title: 'E2E-Vortrag', kind: 'teaching', theme: 'Hell', slides: [
+			{ id: 'a', title: 'Anfang', notes: 'Begrüßen', blocks: [{ kind: 'title', text: 'Eins' }] },
+			{ id: 'b', notes: 'Langsam', blocks: [{ kind: 'title', text: 'Zwei' }] },
+			{ id: 'c', blocks: [{ kind: 'title', text: 'Drei' }] },
+		] },
+	} })
+	await page.goto(`/index.php/apps/phos/#/decks/${id}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 1 von 3')
+
+	// presenter view: own window, current + next slide, notes, timer
+	const [pres] = await Promise.all([page.waitForEvent('popup'), page.getByRole('button', { name: 'Referentenansicht' }).click()])
+	await expect(pres.locator('.presenter__current section.present h1')).toHaveText('Eins')
+	await expect(pres.locator('.presenter__next section.present h1')).toHaveText('Zwei')
+	await expect(pres.locator('.presenter__notes')).toHaveText('Begrüßen')
+	await expect(pres.locator('.presenter__timer')).toHaveText(/^\d\d:\d\d$/)
+	await pres.locator('.presenter__current').focus()
+	await pres.keyboard.press('ArrowRight')
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 2 von 3')          // the deck window followed
+	await expect(pres.locator('.presenter__next section.present h1')).toHaveText('Drei')
+	await page.locator('.decks__stage').focus()
+	await page.keyboard.press('ArrowRight')
+	await expect(pres.locator('.presenter__current section.present h1')).toHaveText('Drei')   // and back
+	await expect(pres.locator('.presenter__end')).toBeVisible()
+	await pres.keyboard.press('b')
+	await expect(page.locator('.decks__stage .reveal')).toHaveClass(/paused/)
+	await pres.keyboard.press('b')
+	await expect(page.locator('.decks__stage .reveal')).not.toHaveClass(/paused/)
+	await pres.close()
+
+	// phone remote: same account, other page
+	await page.keyboard.press('Home')
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 1 von 3')
+	await page.getByRole('button', { name: 'Handy-Fernbedienung' }).click()
+	await expect(page.locator('.decks__remote a')).toHaveText(/#\/remote$/)
+	const phone = await page.context().newPage()
+	await phone.route(/\/apps\/firstrunwizard\//, r => r.abort())
+	await phone.goto('/index.php/apps/phos/#/remote')
+	await expect(phone.locator('.remote__deck')).toHaveText('E2E-Vortrag')
+	await expect(phone.locator('.remote__pos')).toContainText('Folie 1 von 3')
+	await expect(phone.locator('.remote__notes')).toContainText('Begrüßen')
+	await phone.getByRole('button', { name: 'Weiter' }).click()
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 2 von 3')
+	await expect(phone.locator('.remote__notes')).toContainText('Langsam')
+	await phone.getByRole('button', { name: 'Alle Folien' }).click()
+	await phone.locator('.remote__list button', { hasText: '3. Drei' }).click()
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 3 von 3')
+	await phone.getByRole('button', { name: 'Schwarzbild' }).click()
+	await expect(page.locator('.decks__stage .reveal')).toHaveClass(/paused/)
+	// switching it off ends the remote's view
+	await page.getByRole('button', { name: 'Handy-Fernbedienung' }).click()
+	await expect(phone.getByText('Keine Präsentation läuft')).toBeVisible()
+})
+
+test('sharing from the web: a project goes with its exegesis and passage list, a deck with its pictures; and comes back', async ({ page, request }) => {
+	const crypt = await import('node:crypto')
+	const pid = uuid()
+	const eid = uuid()
+	const did = uuid()
+	const auth = 'Basic ' + Buffer.from(`${user()}:${pw()}`).toString('base64')
+	await desktopPush(request, { type: 'project', key: 'project:' + pid, payload: {
+		uuid: pid, title: 'E2E-Teilprojekt', kind: 'study', project: { uuid: pid, title: 'E2E-Teilprojekt', question: 'Teilen?' },
+	} })
+	await desktopPush(request, { type: 'projectOcc', key: 'projectOcc:' + pid, payload: { data: { hits: ['Eph.2.8'] } } })
+	await desktopPush(request, { type: 'pericope', key: 'pericope:' + eid, payload: {
+		uuid: eid, bookStart: 49, chapStart: 2, verseStart: 8, bookEnd: 49, chapEnd: 2, verseEnd: 9, title: 'Teil-Exegese',
+		bibleModule: 'TINYZ', project: pid, docMode: 'internal', rtf: String.raw`{\rtf1 x\par}`, state: {},
+	} })
+	// a deck with one picture in its media folder
+	const dav = (p, data) => request.fetch(`/remote.php/dav/files/${user()}/${p}`, { method: data ? 'PUT' : 'MKCOL', headers: { Authorization: auth }, data })
+	for (const p of ['Phos/', 'Phos/Praesentationen/', `Phos/Praesentationen/${did}/`]) {
+		await dav(p)
+	}
+	expect((await dav(`Phos/Praesentationen/${did}/bild.png`, PNG_RED)).ok()).toBeTruthy()
+	await desktopPush(request, { type: 'presAssets', key: 'presAssets:' + did, payload: {
+		files: [{ p: 'bild.png', s: PNG_RED.length, h: crypt.createHash('md5').update(PNG_RED).digest('hex') }], total: PNG_RED.length,
+	} })
+	await desktopPush(request, { type: 'presentation', key: 'presentation:' + did, payload: {
+		uuid: did, title: 'E2E-Teilfolien', kind: 'sermon', theme: 'Hell',
+		deck: { uuid: did, title: 'E2E-Teilfolien', theme: 'Hell', slides: [{ id: 'a', blocks: [{ kind: 'image', image: `/home/j/phos/presentations/${did}/bild.png` }] }] },
+	} })
+
+	// the project into a new collection
+	await page.goto(`/index.php/apps/phos/#/projects/${pid}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await page.locator('.projects__doc').getByRole('button', { name: 'Teilen …' }).click()
+	const dlg = page.getByRole('dialog', { name: '„E2E-Teilprojekt“ teilen' })
+	await expect(dlg.getByText('Seine Exegesen und Belegstellen kommen mit.')).toBeVisible()
+	await dlg.getByLabel('Name der neuen Sammlung').fill('E2E-Teilen')
+	await dlg.getByRole('button', { name: 'Teilen', exact: true }).click()
+	await expect(page).toHaveURL(/#\/shared\?c=/)
+	const coll = decodeURIComponent(/c=([^&]+)/.exec(page.url())[1])
+	const box = page.locator('#coll-' + coll)
+	await expect(box).toHaveClass(/shared__coll--focus/)
+	await expect(box.locator('h3')).toHaveText('E2E-Teilen')
+	await expect(box.locator('.shared__items')).toContainText('E2E-Teilprojekt')
+	await expect(box.locator('.shared__items')).toContainText('Teil-Exegese')
+	for (const [type, key] of [['project', 'project:' + pid], ['projectOcc', 'projectOcc:' + pid], ['pericope', 'pericope:' + eid]]) {
+		await expect.poll(async () => (await record(request, type, key))?.collection, { message: key }).toBe(coll)
+	}
+
+	// the deck into the same, existing collection; its picture is still there
+	await page.goto(`/index.php/apps/phos/#/decks/${did}`)
+	await page.locator('.decks__top').getByRole('button', { name: 'Teilen …' }).click()
+	const dlg2 = page.getByRole('dialog', { name: '„E2E-Teilfolien“ teilen' })
+	await dlg2.locator('.vs__dropdown-toggle').click()
+	await page.locator('.vs__dropdown-option', { hasText: 'E2E-Teilen' }).click()
+	await dlg2.getByRole('button', { name: 'Teilen', exact: true }).click()
+	await expect(page.locator('#coll-' + coll + ' .shared__items')).toContainText('E2E-Teilfolien')
+	await expect.poll(async () => (await record(request, 'presAssets', 'presAssets:' + did))?.collection).toBe(coll)
+	await page.goto(`/index.php/apps/phos/#/decks/${did}`)
+	await expect(page.locator('.decks__top').getByRole('button', { name: 'Geteilt' })).toBeVisible()
+	const img = page.locator('.decks__stage section.present .phos-image img')
+	await expect(img).toHaveAttribute('src', new RegExp(`/files/${coll}/Praesentationen/${did}/bild\\.png$`))
+	await expect.poll(() => img.evaluate(el => el.complete && el.naturalWidth)).toBe(1)
+
+	// and the project back out: personal again, with what belongs to it
+	await page.goto(`/index.php/apps/phos/#/shared?c=${coll}`)
+	page.once('dialog', d => d.accept())
+	await page.locator('#coll-' + coll + ' .shared__items li', { hasText: 'E2E-Teilprojekt' }).getByRole('button', { name: 'Aus der Sammlung nehmen' }).click()
+	await expect(page.locator('#coll-' + coll + ' .shared__items')).not.toContainText('E2E-Teilprojekt')
+	const personal = (await api(request, 'GET', '/status')).personalCollection
+	for (const [type, key] of [['project', 'project:' + pid], ['projectOcc', 'projectOcc:' + pid], ['pericope', 'pericope:' + eid]]) {
+		await expect.poll(async () => (await record(request, type, key))?.collection, { message: key }).toBe(personal)
+	}
+})
+
+test.describe('phone', () => {
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+	test('phone layout: nothing wider than the screen, Bible and “today” one at a time', async ({ page }) => {
+		for (const r of ['read/TINYZ/Gen/1', 'bible/TINYZ/Gen/1?p=TINYSYN', 'library', 'search', 'bookmarks', 'pads', 'plan', 'sermons', 'decks', 'shared', 'remote']) {
+			await page.goto('/index.php/apps/phos/#/' + r)
+			await page.waitForTimeout(800)
+			const wide = await page.evaluate(() => [...document.querySelectorAll('#content-vue *')]
+				.filter(e => e.offsetParent && !e.closest('.v-popper, .reveal') && e.getBoundingClientRect().right > window.innerWidth + 1)
+				.map(e => e.tagName + '.' + e.className).slice(0, 3))
+			expect(wide, r).toEqual([])
+		}
+		await page.goto('/index.php/apps/phos/#/read/TINYZ/Gen/1')
+		await expect(page.locator('.bible__text')).toBeVisible()
+		await expect(page.locator('.reading__side')).toBeHidden()
+		await page.getByRole('tab', { name: 'Heute und mehr' }).click()
+		await expect(page.locator('.reading__side')).toBeVisible()
+		await expect(page.locator('.bible__text')).toBeHidden()
+		// the chapter navigation fits on one line
+		await page.getByRole('tab', { name: 'Bibel' }).click()
+		const nav = await page.locator('.bible__nav').boundingBox()
+		expect(nav.height).toBeLessThan(60)
+	})
+})
