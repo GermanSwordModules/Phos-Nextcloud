@@ -76,6 +76,7 @@ OC.L10N.register(
         "Bookmark exactly {ref}": "Genau {ref} markieren",
         "Delete this bookmark and its note?": "Dieses Lesezeichen samt Notiz löschen?",
         "shared by {owner}": "geteilt von {owner}",
+        "adding it shares this bookmark (without your private labels)": "damit wird dieses Lesezeichen geteilt (ohne deine privaten Labels)",
         "New label": "Neues Label",
         "Note (Markdown)": "Notiz (Markdown)",
         "This note has formatting from Phos Desktop. Saving here keeps the text but drops the formatting.": "Diese Notiz hat Formatierungen aus Phos Desktop. Speichern hier behält den Text, aber nicht die Formatierung.",

@@ -11,7 +11,7 @@
 					</template>
 				</NcButton>
 			</div>
-			<LabelPicker :selected="bm.labelNames || []" :collection="bm.collection" @update="names => updateBookmark(bm, { labelNames: names })" />
+			<LabelPicker :selected="bm.labelNames || []" :collection="bm.collection" @update="picked => setBookmarkLabels(bm, picked)" />
 			<h4>{{ t('phos', 'Note') }}</h4>
 			<NoteEditor :key="bm.key + (bm.noteMd || '')"
 				:text="bm.noteMd || ''"
@@ -45,7 +45,7 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import LabelPicker from './LabelPicker.vue'
 import NoteEditor from './NoteEditor.vue'
-import { bookmarksIn, createBookmark, deleteBookmark, setNote, updateBookmark, lang } from '../services/phos.js'
+import { bookmarksIn, createBookmark, deleteBookmark, setNote, setBookmarkLabels, lang } from '../services/phos.js'
 import { formatRef } from '../bible/books.js'
 import { iconAdd, iconDelete } from '../icons.js'
 

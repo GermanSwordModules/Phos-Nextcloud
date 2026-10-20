@@ -105,3 +105,58 @@ test('offline edits wait in the outbox and survive a reload', async () => {
 	assert.equal(again.get('bookmark', 'bm:off').pending, undefined)
 	assert.ok(again.get('bookmark', 'bm:off').rev > 0)
 })
+
+test('a shared label moves the bookmark into its collection and back', async () => {
+	const bob = [`webb${run}`, `Web-pw-${run}-y8!R`]
+	const auth = 'Basic ' + Buffer.from(ADMIN.join(':')).toString('base64')
+	const r = await fetch(`${BASE}/ocs/v2.php/cloud/users`, {
+		method: 'POST',
+		headers: { 'OCS-APIRequest': 'true', Accept: 'application/json', Authorization: auth, 'Content-Type': 'application/json' },
+		body: JSON.stringify({ userid: bob[0], password: bob[1] }),
+	})
+	assert.ok(r.ok, 'create bob')
+	const ha = http(user)
+	const coll = (await ha.post('/collections', { name: `Hauskreis ${run}` })).id
+	await ha.post(`/collections/${coll}/members`, { type: 'user', id: bob[0], perm: 'write' })
+
+	const a = new SyncEngine({ http: ha, storage: mem() })
+	const b = new SyncEngine({ http: http(bob), storage: mem() })
+	await a.start('test')
+	await b.start('test')
+	const me = a.state.personal
+	await a.write('label', 'label:Privat', { name: 'Privat', color: '#00ff00' })
+	await a.write('label', 'label:Hauskreis', { name: 'Hauskreis', color: '#0000ff' }, coll)
+	await a.write('bookmark', 'bm:mv', bm('mv', { labelNames: ['Privat'], noteMd: 'teilen' }))
+
+	// move in, private label dropped; queued edit after the move keeps moving it
+	const p = a.get('bookmark', 'bm:mv').payload
+	const moving = a.move('bookmark', 'bm:mv', { ...p, labelNames: ['Hauskreis'] }, me, coll)
+	assert.equal(a.get('bookmark', 'bm:mv', me), null, 'old copy hidden at once')
+	assert.equal(a.get('bookmark', 'bm:mv', coll).payload.labelNames[0], 'Hauskreis')
+	await moving
+	await a.sync()
+	assert.equal(a.get('bookmark', 'bm:mv', me), null)
+	assert.equal(a.list('bookmark').filter(x => x.key === 'bm:mv').length, 1)
+	await b.sync()
+	const seen = b.get('bookmark', 'bm:mv', coll)
+	assert.equal(seen?.payload.noteMd, 'teilen')
+	assert.deepEqual(seen.payload.labelNames, ['Hauskreis'])
+
+	// back out: members lose it, I keep it
+	await a.move('bookmark', 'bm:mv', { ...seen.payload, labelNames: [] }, coll, me)
+	await a.sync()
+	await b.sync()
+	assert.equal(b.get('bookmark', 'bm:mv', coll), null)
+	assert.equal(a.get('bookmark', 'bm:mv', me)?.payload.noteMd, 'teilen')
+	assert.equal(a.list('bookmark').filter(x => x.key === 'bm:mv').length, 1)
+
+	// offline move then delete: the original is deleted, nothing lands in the collection
+	const down = { ...ha, post: (path, body) => path === '/push' ? Promise.reject(Object.assign(new Error('offline'), { network: true })) : ha.post(path, body) }
+	const c = new SyncEngine({ http: down, storage: mem() })
+	await c.start('test')
+	await c.move('bookmark', 'bm:mv', { ...c.get('bookmark', 'bm:mv', me).payload, labelNames: ['Hauskreis'] }, me, coll)
+	await c.write('bookmark', 'bm:mv', null, coll)
+	assert.equal(c.outbox.length, 1)
+	assert.equal(c.outbox[0].collection, me)
+	assert.equal(c.outbox[0].op, 'delete')
+})

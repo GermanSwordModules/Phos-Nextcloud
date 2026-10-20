@@ -4,12 +4,12 @@
 			:key="l.collection + l.name"
 			type="button"
 			class="phos-chip label-picker__chip"
-			:class="{ 'label-picker__chip--on': selected.includes(l.name) }"
+			:class="{ 'label-picker__chip--on': isOn(l) }"
 			:style="{ '--phos-chip': l.color || 'var(--color-border-dark)' }"
-			:aria-pressed="selected.includes(l.name)"
-			:title="l.shared ? t('phos', 'shared by {owner}', { owner: l.owner }) : ''"
-			@click="toggle(l.name)">
-			<NcIconSvgWrapper v-if="selected.includes(l.name)" :path="iconCheck" :size="14" />
+			:aria-pressed="isOn(l)"
+			:title="chipTitle(l)"
+			@click="toggle(l)">
+			<NcIconSvgWrapper v-if="isOn(l)" :path="iconCheck" :size="14" />
 			{{ labelDisplay(l.name) }}
 			<NcIconSvgWrapper v-if="l.shared" :path="iconPerson" :size="14" />
 		</button>
@@ -28,34 +28,51 @@ import { computed, ref } from 'vue'
 import { t } from '@nextcloud/l10n'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
-import { labels, labelDisplay, createLabel } from '../services/phos.js'
+import { assignableLabels, labelDisplay, createLabel, personal } from '../services/phos.js'
 import { iconCheck, iconPerson } from '../icons.js'
 
 const props = defineProps({
+	/** label names of the bookmark (they name labels of its own collection) */
 	selected: { type: Array, default: () => [] },
-	/** labels of this collection only (a bookmark names labels of its own collection) */
+	/** the bookmark's collection */
 	collection: { type: String, default: null },
 })
+/** emits the picked label objects in order; the first shared one decides the collection */
 const emit = defineEmits(['update'])
 const newName = ref('')
 
-const available = computed(() => labels.value.filter(l => !props.collection || l.collection === props.collection))
+const available = computed(() => assignableLabels.value)
+const isOn = l => l.collection === props.collection && props.selected.includes(l.name)
+const current = () => available.value.filter(isOn)
+	.sort((a, b) => props.selected.indexOf(a.name) - props.selected.indexOf(b.name))
 
-function toggle(name) {
-	const next = props.selected.includes(name) ? props.selected.filter(x => x !== name) : [...props.selected, name]
-	emit('update', next)
+function chipTitle(l) {
+	if (!l.shared) {
+		return ''
+	}
+	const by = t('phos', 'shared by {owner}', { owner: l.owner })
+	return isOn(l) || l.collection === props.collection ? by : by + ' — ' + t('phos', 'adding it shares this bookmark (without your private labels)')
 }
 
+function toggle(l) {
+	const cur = current()
+	emit('update', isOn(l) ? cur.filter(x => x !== l) : [...cur, l])
+}
+
+/** A new label belongs where the bookmark is (shared there, or mine). */
 function addNew() {
 	const name = newName.value.trim()
 	if (!name) {
 		return
 	}
-	if (!labels.value.some(l => l.name === name)) {
-		createLabel(name)
+	const coll = props.collection || personal()
+	let l = available.value.find(x => x.name === name && x.collection === coll)
+	if (!l) {
+		createLabel(name, undefined, coll)
+		l = { name, collection: coll }
 	}
-	if (!props.selected.includes(name)) {
-		emit('update', [...props.selected, name])
+	if (!isOn(l)) {
+		emit('update', [...current(), l])
 	}
 	newName.value = ''
 }

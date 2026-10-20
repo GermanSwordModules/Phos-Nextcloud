@@ -224,6 +224,22 @@ export function updateBookmark(bm, changes) {
 	return engine.write('bookmark', key, next, collection)
 }
 
+/**
+ * Labels picked for a bookmark, in order (label objects, any collection).
+ * Desktop rule: the first shared label decides the bookmark's collection, and
+ * it carries only that collection's labels — members never see my private
+ * ones. No shared label → the bookmark is (back in) my personal collection.
+ */
+export function setBookmarkLabels(bm, picked) {
+	const target = picked.find(l => l.collection !== state.personal)?.collection ?? state.personal
+	const labelNames = picked.filter(l => l.collection === target).map(l => l.name)
+	if (target === bm.collection) {
+		return updateBookmark(bm, { labelNames })
+	}
+	const { key, collection, pending: _p, ...payload } = bm
+	return engine.move('bookmark', key, { ...payload, labelNames, modified: nowS() }, collection, target)
+}
+
 /** Note edited here: Markdown only. The desktop's RTF copy would hide the edit, so it goes. */
 export function setNote(bm, text) {
 	return updateBookmark(bm, { noteMd: text.trim() ? text : undefined, noteHtml: undefined })
@@ -238,11 +254,14 @@ export function saveLabel(label, changes = {}) {
 	return engine.write('label', 'label:' + label.name, { ...payload, ...changes }, collection || state.personal)
 }
 
-export function createLabel(name, color = '#4a90d9') {
+export function createLabel(name, color = '#4a90d9', collection = state.personal) {
 	return engine.write('label', 'label:' + name, {
 		name, color, style: 'fill', iconId: 'bookmark', favorite: false, actionBar: false, autoAssign: false,
-	})
+	}, collection)
 }
+
+/** Labels a bookmark of mine may carry: my own and those of collections I can write to. */
+export const assignableLabels = computed(() => labels.value.filter(l => engine.writable(l.collection)))
 
 /** Bookmarks touching a verse in this chapter (module-scoped ones only in their module). */
 export function bookmarksIn(book, chap, module) {

@@ -64,7 +64,7 @@ export class SyncEngine {
 			this.outbox = []
 		}
 		for (const c of this.outbox) {
-			this.pending.set(rk(c.collection, c.type, c.key), this.overlay(c))
+			this.setOverlay(c)
 		}
 		this.state.outbox = this.outbox.length
 		this.chain = Promise.resolve()
@@ -75,6 +75,16 @@ export class SyncEngine {
 			collection: c.collection, type: c.type, key: c.key, rev: c.baseRev, hlc: c.hlc,
 			deleted: c.op === 'delete', payload: c.op === 'delete' ? null : c.payload, pending: true,
 			changeId: c.changeId,
+		}
+	}
+
+	/** Shows a queued change locally; a move also hides the record in its old collection. */
+	setOverlay(c) {
+		this.pending.set(rk(c.collection, c.type, c.key), this.overlay(c))
+		if (c.moveFrom) {
+			this.pending.set(rk(c.moveFrom, c.type, c.key), {
+				...this.overlay(c), collection: c.moveFrom, deleted: true, payload: null,
+			})
 		}
 	}
 
@@ -215,6 +225,28 @@ export class SyncEngine {
 	 * A record edited again before its push replaces the queued change.
 	 */
 	write(type, key, payload, collection = this.state.personal) {
+		return this.queue(type, key, payload, collection, null)
+	}
+
+	/**
+	 * Moves a record to another collection (protocol §11 moveFrom): an upsert
+	 * there, the server tombstones the old copy.
+	 */
+	move(type, key, payload, from, to) {
+		if (from === to) {
+			return this.write(type, key, payload, to)
+		}
+		// a move still queued from `from` is folded into this one
+		const earlier = this.outbox.find(c => c.type === type && c.key === key && c.collection === from && c.moveFrom)
+		const origin = earlier ? earlier.moveFrom : from
+		if (earlier) {
+			this.outbox = this.outbox.filter(c => c !== earlier)
+			this.pending.delete(rk(from, type, key))
+		}
+		return this.queue(type, key, payload, to, origin === to ? null : origin)
+	}
+
+	queue(type, key, payload, collection, moveFrom) {
 		const k = rk(collection, type, key)
 		const base = this.records.get(k)
 		const queued = this.outbox.findIndex(c => rk(c.collection, c.type, c.key) === k)
@@ -225,13 +257,23 @@ export class SyncEngine {
 			baseRev: queued >= 0 ? this.outbox[queued].baseRev : (base?.rev ?? 0),
 			payload: payload === null ? undefined : JSON.parse(JSON.stringify(payload)),
 		}
+		// an edit after a queued move keeps moving it (a delete just deletes the new copy)
+		const from = moveFrom ?? (queued >= 0 ? this.outbox[queued].moveFrom : null)
+		if (from && payload !== null) {
+			change.moveFrom = from
+		} else if (from) {
+			// deleted before the move went out: delete the original instead
+			change.collection = from
+			change.baseRev = this.records.get(rk(from, type, key))?.rev ?? 0
+			this.pending.delete(k)
+		}
 		if (queued >= 0) {
 			this.outbox.splice(queued, 1, change)
 		} else {
 			this.outbox.push(change)
 		}
 		this.saveOutbox()
-		this.pending.set(k, this.overlay(change))
+		this.setOverlay(change)
 		return this.flush()
 	}
 
@@ -265,6 +307,19 @@ export class SyncEngine {
 				}
 				if (this.pending.get(k)?.changeId === c.changeId) {
 					this.pending.delete(k)
+				}
+				if (c.moveFrom) {
+					const fk = rk(c.moveFrom, c.type, c.key)
+					if (['accepted', 'merged'].includes(r.status)) {
+						// the server tombstoned it; the pull brings the tombstone's rev
+						const old = this.records.get(fk)
+						if (old) {
+							this.records.set(fk, Object.freeze({ ...old, deleted: true, payload: null }))
+						}
+					}
+					if (this.pending.get(fk)?.changeId === c.changeId) {
+						this.pending.delete(fk)
+					}
 				}
 			}
 			this.outbox = this.outbox.filter(c => !sent.has(c.changeId))
