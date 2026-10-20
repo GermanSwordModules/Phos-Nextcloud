@@ -1,0 +1,357 @@
+/* Scoped copy of BVC web/reveal/theme/phos.css (the desktop deck theme):
+   :root and html/body rules moved onto .phos-deckhost so the deck can live
+   inside the Nextcloud page. Regenerate from the desktop file, do not edit. */
+/* Phos presentation theme.
+ *
+ * Written entirely against the CSS custom properties that
+ * unit_presrender.ThemeCss emits into a :root{} block, so switching themes
+ * never regenerates a stylesheet — only the token values change. Keep every
+ * colour/font/size here referencing a var(--pres-*) with a literal fallback.
+ *
+ * Load order in a deck document (see unit_presrender.RenderDeck):
+ *   1. reset.css + reveal.css      reveal's own layout
+ *   2. BuildBaseCSS                Phos verse/OSIS markup rules
+ *   3. this file                   slide chrome, overriding 2 where needed
+ *   4. the theme's :root custom properties + its ExtraCss
+ *
+ * (Steps 2 and 4 are inline style elements. Do not write that tag's literal
+ *  closing form anywhere in this file: the standalone exporter inlines this
+ *  stylesheet, and HTML would end the element there — see unit_presassets.)
+ */
+
+.phos-deckhost {
+  --pres-bg: #ffffff;
+  --pres-fg: #1c2833;
+  --pres-accent: #2874a6;
+  --pres-muted: #7f8c8d;
+  --pres-versenum: #95a5a6;
+  --pres-highlight: #fff3a0;
+  --pres-heading-font: "Liberation Sans", Arial, sans-serif;
+  --pres-body-font: "Liberation Sans", Arial, sans-serif;
+  --pres-verse-font: "Liberation Serif", Georgia, serif;
+  --pres-base-size: 28pt;
+  --pres-bg-image: none;
+  --pres-logo-opacity: 1;
+}
+
+/* ---- ground ---------------------------------------------------------- */
+
+.phos-deckhost { background: var(--pres-bg); }
+
+.reveal {
+  font-family: var(--pres-body-font);
+  color: var(--pres-fg);
+  font-size: var(--pres-base-size);
+}
+
+/* BuildBaseCSS styles `body` for the reading panels; inside a deck the
+   background belongs to the theme, and the backdrop layer carries any image
+   or gradient so reveal's own transitions never move it. */
+.reveal-viewport {
+  background-color: var(--pres-bg);
+  background-image: var(--pres-bg-image);
+  background-size: cover;
+  background-position: center;
+}
+
+.reveal .slides { text-align: left; }
+
+.reveal .slides section { height: 100%; }
+
+/* A slide carrying its own theme tokens paints its own ground; the viewport
+   behind it still shows the deck's, so the override has to be opaque. */
+.reveal .slides section[data-theme] {
+  background: var(--pres-bg);
+  color: var(--pres-fg);
+}
+
+/* reveal owns the <section>'s display property — it flips block/none there to
+   show one slide at a time — so the slide's own layout lives one level in,
+   on this wrapper. Fighting reveal for `display` on the section instead makes
+   every past/future slide visible at once. */
+.reveal .phos-slidebody {
+  height: 100%;
+  padding: 0 1.2em;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Column layouts (TSlide.Layout). A teaching slide usually wants two things
+   beside each other — the Greek and a translation, or two versions — while the
+   heading still runs across the top, so titles span every column. Columns are
+   equal width and top-aligned; content that outgrows one scrolls rather than
+   pushing the other column around. */
+.reveal .phos-slidebody.phos-cols2,
+.reveal .phos-slidebody.phos-cols3 {
+  display: grid;
+  gap: .1em 1.1em;
+  align-content: start;
+  grid-auto-rows: min-content;
+}
+.reveal .phos-slidebody.phos-cols2 { grid-template-columns: 1fr 1fr; }
+.reveal .phos-slidebody.phos-cols3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.reveal .phos-slidebody.phos-cols2 > .phos-title,
+.reveal .phos-slidebody.phos-cols2 > .phos-subtitle,
+.reveal .phos-slidebody.phos-cols3 > .phos-title,
+.reveal .phos-slidebody.phos-cols3 > .phos-subtitle { grid-column: 1 / -1; }
+
+/* Columns carry less width, so the scripture in them needs to breathe less. */
+.reveal .phos-cols2 .phos-verses,
+.reveal .phos-cols3 .phos-verses { font-size: .82em; line-height: 1.34; }
+.reveal .phos-cols3 .phos-verses { font-size: .7em; }
+.reveal .phos-cols2 .phos-block,
+.reveal .phos-cols3 .phos-block { min-width: 0; overflow-wrap: break-word; }
+
+/* BuildBaseCSS styles the reading panels with bare type selectors (`p`,
+   `li`, ...) and it sits in the same cascade here. Re-inherit the ones that
+   would otherwise override a slide's own alignment; a class selector beats a
+   type selector, so this is enough. */
+.reveal .phos-slidebody p,
+.reveal .phos-slidebody li,
+.reveal .phos-slidebody h1 { text-align: inherit; }
+
+.reveal a { color: var(--pres-accent); }
+
+/* ---- headings -------------------------------------------------------- */
+
+.reveal .phos-title {
+  font-family: var(--pres-heading-font);
+  color: var(--pres-fg);
+  font-size: 1.55em;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 .25em;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.reveal .phos-subtitle {
+  font-family: var(--pres-heading-font);
+  color: var(--pres-muted);
+  font-size: 1.05em;
+  font-weight: 400;
+  margin: 0 0 .6em;
+}
+
+/* A title slide — the only block is a title (+ optional subtitle) — centres
+   itself and drops the accent rule underneath. */
+.reveal section.phos-titleslide .phos-slidebody {
+  justify-content: center;
+  text-align: center;
+}
+.reveal section.phos-titleslide .phos-title { font-size: 2em; }
+.reveal section.phos-titleslide .phos-title::after {
+  content: "";
+  display: block;
+  width: 3.2em;
+  height: 3px;
+  margin: .45em auto 0;
+  background: var(--pres-accent);
+}
+
+/* ---- bullets --------------------------------------------------------- */
+
+.reveal .phos-bullets { margin: .2em 0 .4em; }
+.reveal .phos-bullets ul { display: block; margin: 0; padding-left: 1.1em; }
+.reveal .phos-bullets li {
+  margin: 0 0 .42em;
+  line-height: 1.32;
+}
+.reveal .phos-bullets li::marker { color: var(--pres-accent); }
+/* Nested level — one leading tab or two spaces in the source line. */
+.reveal .phos-bullets ul ul {
+  margin-top: .32em;
+  font-size: .86em;
+  color: var(--pres-muted);
+}
+
+/* ---- free text ------------------------------------------------------- */
+
+/* Prose blocks (SlideTextHtml). Everything is class-only markup so the sizes
+   and colours come from the theme tokens rather than from whatever renderer
+   produced the HTML. */
+.reveal .phos-text { margin: .2em 0 .45em; line-height: 1.38; }
+.reveal .phos-text p { margin: 0 0 .5em; text-align: inherit; }
+.reveal .phos-text b,
+.reveal .phos-text strong { font-weight: 700; color: inherit; }
+.reveal .phos-text i,
+.reveal .phos-text em { font-style: italic; }
+.reveal .phos-text a { color: var(--pres-accent); }
+
+.reveal .phos-text .phos-h1,
+.reveal .phos-text .phos-h2,
+.reveal .phos-text .phos-h3 {
+  font-family: var(--pres-heading-font);
+  font-weight: 700;
+  color: var(--pres-fg);
+  margin: .1em 0 .3em;
+  line-height: 1.2;
+}
+.reveal .phos-text .phos-h1 { font-size: 1.3em; }
+.reveal .phos-text .phos-h2 { font-size: 1.12em; }
+.reveal .phos-text .phos-h3 { font-size: 1em; color: var(--pres-muted); }
+
+.reveal .phos-text blockquote {
+  margin: .25em 0 .5em;
+  padding-left: .6em;
+  border-left: 4px solid var(--pres-accent);
+  font-style: italic;
+  color: var(--pres-muted);
+}
+
+/* A prose block may carry its own bullet list. */
+.reveal .phos-text ul { display: block; margin: .1em 0 .5em; padding-left: 1.1em; }
+.reveal .phos-text li { margin: 0 0 .35em; }
+.reveal .phos-text li::marker { color: var(--pres-accent); }
+
+/* ---- scripture ------------------------------------------------------- */
+
+.reveal .phos-passage { margin: .1em 0 .5em; }
+
+.reveal .phos-ref {
+  font-family: var(--pres-heading-font);
+  color: var(--pres-accent);
+  font-size: .72em;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin: 0 0 .3em;
+}
+
+.reveal .phos-verses {
+  font-family: var(--pres-verse-font);
+  line-height: 1.42;
+}
+
+/* Verse numbers: BuildBaseCSS already emits sup.vnum for panel rendering;
+   restyle rather than re-mark-up so the same fragment works in both places. */
+.reveal .phos-verses sup.vnum,
+.reveal .phos-verses .phos-vnum {
+  color: var(--pres-versenum);
+  font-family: var(--pres-heading-font);
+  font-size: .5em;
+  font-weight: 700;
+  vertical-align: super;
+  margin-right: .18em;
+}
+
+/* One verse per line, for line-by-line exposition. */
+.reveal .phos-verses.phos-lines .verse { display: block; margin: 0 0 .3em; }
+
+/* Strong's anchors inherit slide colour instead of the panel's link blue.
+   RenderModuleHTML wraps every word in an <a> carrying unit_render's
+   STR_LINK_STYLE as an INLINE style (dotted underline, for hover-to-lemma in
+   the reading panels). Inline styles outrank a stylesheet, so overriding them
+   for projection genuinely needs !important — a slide full of dotted
+   underlines is unreadable from the back of a room. */
+.reveal .phos-verses a {
+  color: inherit !important;
+  border-bottom: none !important;
+  text-decoration: none !important;
+}
+
+/* A quotation-style passage for a single memorable verse. */
+.reveal .phos-passage.phos-quote .phos-verses {
+  font-size: 1.18em;
+  font-style: italic;
+  border-left: 4px solid var(--pres-accent);
+  padding-left: .6em;
+}
+
+/* ---- captured views -------------------------------------------------- */
+
+/* Frozen HTML from an arbitrary Phos view (interlinear, synopsis, study
+   Bible, search results). It arrives with its own inline styling, so scope
+   the reset tightly: force sane sizing and let it scroll rather than bleed
+   off the slide. */
+.reveal .phos-capture {
+  font-size: .58em;
+  line-height: 1.3;
+  max-height: 78vh;
+  overflow: auto;
+  background: transparent;
+}
+.reveal .phos-capture table { border-collapse: collapse; width: 100%; }
+.reveal .phos-capture img { max-width: 100%; height: auto; }
+
+/* ---- images and maps ------------------------------------------------- */
+
+.reveal .phos-image { text-align: center; margin: .2em 0; }
+.reveal .phos-image img {
+  max-width: 100%;
+  max-height: 74vh;
+  height: auto;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+.reveal .phos-image .phos-caption {
+  font-size: .55em;
+  color: var(--pres-muted);
+  margin-top: .35em;
+}
+
+.reveal .phos-spacer { height: .8em; }
+
+/* ---- step-by-step highlight ------------------------------------------ */
+
+/* A fragment that paints its target instead of revealing it: the text is
+   visible from the start and gains the highlight when its step arrives. */
+.reveal .fragment.phos-hl {
+  opacity: 1;
+  visibility: inherit;
+  border-radius: .12em;
+  transition: background-color .25s ease;
+}
+.reveal .fragment.phos-hl.visible { background-color: var(--pres-highlight); }
+
+/* ---- chrome ---------------------------------------------------------- */
+
+.reveal .phos-footer {
+  position: absolute;
+  bottom: .55em;
+  left: 1.2em;
+  right: 1.2em;
+  font-family: var(--pres-heading-font);
+  font-size: .4em;
+  color: var(--pres-muted);
+  pointer-events: none;
+}
+
+.reveal .phos-logo {
+  position: fixed;
+  z-index: 40;
+  opacity: var(--pres-logo-opacity);
+  pointer-events: none;
+}
+.reveal .phos-logo img { display: block; height: 100%; width: auto; }
+.phos-logo-tl { top: 2vh; left: 2vh; }
+.phos-logo-tr { top: 2vh; right: 2vh; }
+.phos-logo-bl { bottom: 2vh; left: 2vh; }
+.phos-logo-br { bottom: 2vh; right: 2vh; }
+
+/* ---- print ----------------------------------------------------------- */
+
+/* reveal's print-pdf stylesheet paints the page white; keep the theme's
+   ground so a dark deck exports as a dark PDF. */
+@media print {
+  .reveal-viewport { background: var(--pres-bg) !important; }
+  .reveal .phos-capture { overflow: visible; max-height: none; }
+  /* reveal.css's own print block forces `color:#000!important` on h1-h6 and a
+     fixed heading size, which would turn a dark theme's PDF into black text on
+     a dark ground. Take those back. */
+  .reveal .phos-title,
+  .reveal .phos-slidebody h1 {
+    color: var(--pres-fg) !important;
+    font-size: 1.55em !important;
+  }
+  .reveal section.phos-titleslide .phos-title { font-size: 2em !important; }
+  /* PDF export goes through unit_presrender.RenderPrintDocument, which gives
+     every slide a real 1280x720 box — so the slide body keeps its normal flex
+     layout here (flattening it, as an earlier reveal-based print path needed,
+     threw away the vertical centring of title slides). */
+  .reveal .phos-capture { max-height: none; }
+}

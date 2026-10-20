@@ -33,4 +33,8 @@ export {
 	mdiMapOutline as iconMap,
 	mdiChevronDown as iconExpand,
 	mdiFileTreeOutline as iconToc,
+	mdiScriptTextOutline as iconSermon,
+	mdiFolderOutline as iconProjects,
+	mdiPresentation as iconDecks,
+	mdiBookOpenVariant as iconEbooks,
 } from '@mdi/js'

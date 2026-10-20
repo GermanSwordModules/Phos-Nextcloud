@@ -148,3 +148,25 @@ body[data-themes*='dark'] #phos {
 	background: color-mix(in srgb, var(--phos-chip, transparent) 25%, transparent);
 	white-space: nowrap;
 }
+
+// RTF documents of the desktop (exegeses, project notes), converted by docs/rtf.js
+.phos-rtf {
+	line-height: 1.5;
+
+	p {
+		margin: 0 0 .4em;
+	}
+
+	em, strong {
+		color: inherit;
+	}
+
+	p.rtf-empty {
+		height: .6em;
+		margin: 0;
+	}
+
+	h3, h4 {
+		margin: .8em 0 .3em;
+	}
+}

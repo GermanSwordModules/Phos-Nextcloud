@@ -265,3 +265,161 @@ test('continue reading: the desktop’s workspace on the start page; book positi
 	await expect(entry.locator('h3')).toHaveText('Kapitel 1')
 	await expect.poll(async () => (await record(request, 'readingPosition', 'pos:mod:TINYBOOK'))?.payload.entryKey).toBe('/Teil Eins/Kapitel 1')
 })
+
+// ---------- W-5 / W-6: documents, presentations, e-books ----------
+
+const uuid = () => crypto.randomUUID()
+
+test('sermon: a desktop sermon opens, edits reach the server, a desktop edit comes back; a new one starts here', async ({ page, request }) => {
+	const id = uuid()
+	const key = 'sermon:' + id
+	const r = await desktopPush(request, { type: 'sermon', key, payload: {
+		uuid: id, title: 'E2E-Predigt', passage: 'Joh 3,16', passage_osis: 'John.3.16', exegesis: '', planner_event: '', project: '', deck: '',
+		bible: 'TINYZ', main_idea: 'Gott liebt die Welt', goal: '', audience: '', intro: '', conclusion: '',
+		created: '2026-10-20T08:00:00', modified: '2026-10-20T08:00:00',
+		outline: [{ title: 'Liebe', refs: '3,16', blocks: [{ kind: 'verse', text: 'Also hat Gott', ref: 'Joh 3,16', osis: 'John.3.16' }] }],
+	} })
+	expect(r.status).toBe('accepted')
+	await page.goto(`/index.php/apps/phos/#/sermons/${id}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await expect(page.getByLabel('Titel')).toHaveValue('E2E-Predigt')
+	await expect(page.getByLabel('Punkt 1')).toHaveValue('Liebe')
+	await page.getByLabel('Hauptgedanke').fill('Gott liebt die Welt\nund dich')
+	await page.getByRole('button', { name: 'Baustein hinzufügen' }).click()
+	await page.getByLabel('Notiz').last().fill('Neuer Baustein aus dem Web')
+	await expect.poll(async () => (await record(request, 'sermon', key))?.payload.outline[0].blocks.length, { timeout: 15000 }).toBe(2)
+	const after = (await record(request, 'sermon', key)).payload
+	expect(after.main_idea).toBe('Gott liebt die Welt\nund dich')
+	expect(after.outline[0].blocks[1]).toMatchObject({ kind: 'note', text: 'Neuer Baustein aus dem Web' })
+	expect(after.uuid).toBe(id)
+
+	// the desktop changes the title
+	const cur = await record(request, 'sermon', key)
+	await desktopPush(request, { type: 'sermon', key, baseRev: cur.rev, payload: { ...cur.payload, title: 'Vom Desktop umbenannt' } })
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await expect(page.getByLabel('Titel')).toHaveValue('Vom Desktop umbenannt')
+
+	await page.getByRole('button', { name: 'Neue Predigt' }).click()
+	await expect(page).not.toHaveURL(new RegExp(id))
+	const newId = page.url().split('/').pop()
+	await expect.poll(async () => (await record(request, 'sermon', 'sermon:' + newId))?.payload.uuid, { timeout: 15000 }).toBe(newId)
+})
+
+test('projects and exegeses: RTF notes and exegesis text are shown, links between them', async ({ page, request }) => {
+	const pid = uuid()
+	const eid = uuid()
+	const rtf = String.raw`{\rtf1\ansi\ansicp1252{\fonttbl{\f0 Noto Sans;}}\f0\fs22 Durch die \b Gnade\b0  seid ihr errettet \u8211? Eph 2,8.\par Zweiter Absatz.\par}`
+	await desktopPush(request, { type: 'project', key: 'project:' + pid, payload: {
+		uuid: pid, title: 'E2E-Projekt', kind: 'study', status: 'aktiv', created: '20-10-26 08:00:00', modified: '20-10-26 08:00:00',
+		project: { uuid: pid, title: 'E2E-Projekt', question: 'Was ist Gnade?', category: 'Tests', kind: 'study',
+			checklist: [{ title: 'Frage festlegen', tab: '', done: true }, { title: 'Exegese', tab: 'exegesen', done: false }], concepts: [{ lexeme: 'G5485', gloss: 'Gnade' }] },
+		notesRtf: String.raw`{\rtf1\ansi Projektnotiz mit \i Kursivem\i0 .\par}`,
+	} })
+	await desktopPush(request, { type: 'pericope', key: 'pericope:' + eid, payload: {
+		uuid: eid, bookStart: 49, chapStart: 2, verseStart: 8, bookEnd: 49, chapEnd: 2, verseEnd: 10, title: 'Aus Gnade',
+		savedDate: '20-10-26 08:00:00', bibleModule: 'TINYZ', project: pid, docMode: 'internal', docPath: '', commentModules: [], rtf,
+		state: { bibleW: '400' },
+	} })
+	await page.goto(`/index.php/apps/phos/#/projects/${pid}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	const doc = page.locator('.projects__doc')
+	await expect(doc.locator('h2')).toHaveText('E2E-Projekt')
+	await expect(doc).toContainText('Was ist Gnade?')
+	await expect(doc.locator('.phos-rtf em')).toHaveText('Kursivem')
+	await expect(doc).toContainText('G5485 – Gnade')
+	await expect(doc.locator('.projects__check li')).toHaveText(['☑ Frage festlegen', '☐ Exegese'])
+	await doc.getByRole('link', { name: /Epheser 2,8-10/ }).click()
+	await expect(page).toHaveURL(new RegExp('#/exegesis/' + eid))
+	const ex = page.locator('.exegesis')
+	await expect(ex.locator('h2')).toContainText('Aus Gnade')
+	await expect(ex.locator('.phos-rtf strong')).toHaveText('Gnade')
+	await expect(ex.locator('.phos-rtf')).toContainText('errettet – Eph 2,8.')
+	await expect(ex.locator('.phos-rtf p')).toHaveCount(2)
+	await expect(ex.getByRole('link', { name: 'E2E-Projekt' })).toBeVisible()
+})
+
+test('presentation: a desktop deck plays with reveal.js — theme, passage from the server, steps, notes', async ({ page, request }) => {
+	const id = uuid()
+	await desktopPush(request, { type: 'presentation', key: 'presentation:' + id, payload: {
+		uuid: id, title: 'E2E-Folien', kind: 'sermon', theme: 'Dunkel', created: 46315.3, modified: 46315.3,
+		deck: { uuid: id, title: 'E2E-Folien', kind: 'sermon', theme: 'Dunkel', slides: [
+			{ id: 'a', blocks: [{ kind: 'title', text: 'Willkommen' }, { kind: 'subtitle', text: '20.10.2026' }] },
+			{ id: 'b', notes: 'Langsam **lesen**', blocks: [{ kind: 'passage', module: 'TINYZ', osis: 'Gen.1.1-Gen.1.2', step: 'verse' }] },
+			{ id: 'c', blocks: [{ kind: 'bullets', text: '- Erstens\n- Zweitens' }, { kind: 'image', image: '/home/x/elsewhere/bild.png' }] },
+		] },
+	} })
+	await page.goto(`/index.php/apps/phos/#/decks/${id}`)
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	const stage = page.locator('.decks__stage')
+	await expect(stage.locator('.slides > section')).toHaveCount(3)
+	await expect(stage.locator('section.present h1.phos-title')).toHaveText('Willkommen')
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 1 von 3')
+	// the deck's theme reaches the slides
+	expect(await stage.evaluate(el => getComputedStyle(el).getPropertyValue('--pres-bg').trim())).toBe('#12181f')
+	await stage.focus()
+	await page.keyboard.press('ArrowRight')
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 2 von 3')
+	const passage = stage.locator('section.present .phos-passage')
+	await expect(passage.locator('.phos-ref')).toContainText(/ 1,1-2 \(TINYZ\)/)
+	await expect(passage.locator('#v1_1')).toContainText('In the beginning')
+	await expect(passage.locator('.verse.fragment')).toHaveCount(2)
+	await expect(page.locator('.decks__notes strong')).toHaveText('lesen')
+	await page.keyboard.press('ArrowRight')    // verse 1 appears
+	await expect(passage.locator('#v1_1')).toHaveClass(/visible/)
+	await page.keyboard.press('ArrowRight')
+	await page.keyboard.press('ArrowRight')
+	await expect(page.locator('.decks__pos')).toHaveText('Folie 3 von 3')
+	await expect(stage.locator('section.present .phos-bullets li')).toHaveCount(2)
+	await expect(stage.locator('section.present .phos-caption')).toHaveText('Bild fehlt: bild.png')
+})
+
+test('e-books: list with title from book.conf, ePub reader with contents and shared position, PDF inline', async ({ page, request }) => {
+	const fs = await import('node:fs')
+	const path = await import('node:path')
+	const crypt = await import('node:crypto')
+	const dir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'fixtures', 'ebooks')
+	const auth = 'Basic ' + Buffer.from(`${user()}:${pw()}`).toString('base64')
+	const dav = p => request.fetch(`/remote.php/dav/files/${user()}/${p}`, { method: p.endsWith('/') ? 'MKCOL' : 'PUT', headers: { Authorization: auth } })
+	const put = (p, data) => request.fetch(`/remote.php/dav/files/${user()}/${p}`, { method: 'PUT', headers: { Authorization: auth }, data })
+	for (const p of ['Phos/', 'Phos/E-Books/', 'Phos/E-Books/Fixture-Buch/', 'Phos/E-Books/Fixture-PDF/']) {
+		await dav(p)
+	}
+	const manifest = async (ref, names) => {
+		const files = []
+		for (const [p, src] of names) {
+			const buf = fs.readFileSync(path.join(dir, src))
+			expect((await put(`Phos/E-Books/${ref}/${p}`, buf)).ok()).toBeTruthy()
+			files.push({ p, s: buf.length, h: crypt.createHash('md5').update(buf).digest('hex') })
+		}
+		return { files, total: files.reduce((a, f) => a + f.s, 0) }
+	}
+	await desktopPush(request, { type: 'ebook', key: 'ebook:Fixture-Buch', payload: await manifest('Fixture-Buch', [['book.conf', 'book.conf'], ['book.epub', 'book.epub']]) })
+	await desktopPush(request, { type: 'ebook', key: 'ebook:Fixture-PDF', payload: await manifest('Fixture-PDF', [['book.pdf', 'book.pdf']]) })
+	// the desktop was reading chapter 2
+	await desktopPush(request, { type: 'readingPosition', key: 'pos:ebook:Fixture-Buch', payload: { entryKey: 'Text/ch2.xhtml', scroll: 0 } })
+
+	await page.goto('/index.php/apps/phos/#/ebooks')
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	const grid = page.locator('.ebooks__grid')
+	await expect(grid.locator('.ebooks__card', { hasText: 'Fixture-Buch' })).toContainText('Phos Tests')
+	await expect(grid.locator('.ebooks__card', { hasText: 'Fixture PDF' })).toContainText('PDF')
+
+	await grid.locator('.ebooks__card', { hasText: 'Fixture-Buch' }).click()
+	const frame = page.frameLocator('.ebooks__viewer iframe')
+	await expect(frame.locator('h1')).toHaveText('Zweites Kapitel')       // where the desktop left off
+	await page.getByRole('button', { name: 'Vorige Seite' }).click()
+	await expect(frame.locator('h1')).toHaveText('Erstes Kapitel')
+	expect(await page.title()).not.toBe('bad')                            // the book's script did not run
+	await expect.poll(async () => (await record(request, 'readingPosition', 'pos:ebook:Fixture-Buch'))?.payload.entryKey, { timeout: 15000 })
+		.toBe('Text/ch1.xhtml')
+
+	await page.goto('/index.php/apps/phos/#/ebooks/Fixture-PDF')
+	const src = await page.locator('iframe.ebooks__pdf').getAttribute('src')
+	const r = await request.fetch(src, { headers: { Authorization: auth } })
+	expect(r.ok()).toBeTruthy()
+	expect(r.headers()['content-type']).toBe('application/pdf')
+	expect(r.headers()['content-disposition']).toMatch(/^inline/)
+	// anything that could carry script stays a download
+	const conf = await request.fetch(src.replace('Fixture-PDF/book.pdf', 'Fixture-Buch/book.epub') + '?download=1', { headers: { Authorization: auth } })
+	expect(conf.headers()['content-disposition']).toMatch(/^attachment/)
+})

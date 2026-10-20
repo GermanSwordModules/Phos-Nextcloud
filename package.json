@@ -1,6 +1,6 @@
 {
 	"name": "phos",
-	"version": "0.3.7",
+	"version": "0.4.0",
 	"private": true,
 	"description": "Phos web frontend (Nextcloud app)",
 	"license": "AGPL-3.0-or-later",
@@ -27,7 +27,9 @@
 		"@nextcloud/router": "^3.2.0",
 		"@nextcloud/vue": "^9.13.1",
 		"dompurify": "^3.4.17",
+		"epubjs": "^0.3.93",
 		"marked": "^18.1.1",
+		"reveal.js": "^6.0.1",
 		"vue": "3.5",
 		"vue-router": "^4.6.4"
 	},

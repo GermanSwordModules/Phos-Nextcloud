@@ -28,6 +28,12 @@ use OCP\IUserSession;
  */
 class FilesController extends Controller {
 	private const AREAS = ['Module' => 'module', 'E-Books' => 'ebook', 'Praesentationen' => 'presAssets'];
+	private const SAFE_TYPES = [
+		'pdf' => 'application/pdf', 'epub' => 'application/epub+zip', 'json' => 'application/json',
+		'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp',
+		'mp3' => 'audio/mpeg', 'ogg' => 'audio/ogg', 'mp4' => 'video/mp4', 'webm' => 'video/webm',
+		'conf' => 'text/plain; charset=utf-8', 'txt' => 'text/plain; charset=utf-8',
+	];
 
 	public function __construct(
 		string $appName,
@@ -70,8 +76,16 @@ class FilesController extends Controller {
 			return new DataResponse(['error' => 'not a file'], Http::STATUS_NOT_FOUND);
 		}
 		$resp = new StreamResponse($node->fopen('rb'));
-		$resp->addHeader('Content-Type', 'application/octet-stream');
+		// Only types that cannot run script in this origin are named; the rest
+		// (HTML, SVG, XHTML inside books …) stays a download.
+		$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+		$type = self::SAFE_TYPES[$ext] ?? 'application/octet-stream';
+		$resp->addHeader('Content-Type', $type);
 		$resp->addHeader('Content-Length', (string)$node->getSize());
+		$resp->addHeader('X-Content-Type-Options', 'nosniff');
+		$inline = $type !== 'application/octet-stream' && $this->request->getParam('download') === null;
+		$name = str_replace(['"', '\\', "\r", "\n"], '', basename($path));
+		$resp->addHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . '; filename="' . $name . '"');
 		return $resp;
 	}
 }
