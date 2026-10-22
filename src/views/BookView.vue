@@ -81,7 +81,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import TextPopover from '../components/TextPopover.vue'
 import { useTextPopover } from '../components/useNotes.js'
-import { modules, getToc, getBookEntry, prefs, defaultBible, pictureUrl, bookPosition, setBookPosition } from '../services/phos.js'
+import { modules, getToc, getBookEntry, prefs, defaultBible, pictureUrl, bookPosition, setBookPosition, localOnlyOptions } from '../services/phos.js'
 import { render } from '../bible/render.js'
 import { parseRef } from '../bible/books.js'
 import { iconPrev, iconNext, iconExpand } from '../icons.js'
@@ -92,7 +92,8 @@ const router = useRouter()
 const pop = useTextPopover()
 
 const books = computed(() => modules.value.filter(m => m.kind === 'genbook' && !m.readingPlan))
-const options = computed(() => books.value.map(m => ({ id: m.name, label: `${m.name} – ${m.description}`, locked: m.locked })))
+const options = computed(() => books.value.map(m => ({ id: m.name, label: `${m.name} – ${m.description}`, locked: m.locked }))
+	.concat(localOnlyOptions('genbook')))
 const moduleName = computed(() => {
 	const names = books.value.filter(m => !m.locked).map(m => m.name)
 	return [route.params.module, prefs.get('book', null)].find(n => n && names.includes(n)) || names[0] || null

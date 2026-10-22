@@ -281,6 +281,10 @@ DE = {
     'No presentations yet': 'Noch keine Präsentationen',
     'Slide decks made in Phos Desktop appear here once they are synced.': 'Foliensätze aus Phos Desktop erscheinen hier, sobald sie synchronisiert sind.',
     'Present': 'Präsentieren',
+    # modules on both sides
+    'only on {device}': 'nur auf {device}',
+    'Only on {device}, not stored online — in Phos Desktop: right-click → “Online speichern (Nextcloud)”':
+        'Nur auf {device}, nicht online gespeichert — in Phos Desktop: Rechtsklick → „Online speichern (Nextcloud)“',
     # W-8 phones
     'Today and more': 'Heute und mehr',
     # W-7: sharing from the web

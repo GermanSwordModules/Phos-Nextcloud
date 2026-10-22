@@ -32,14 +32,15 @@
 								<component :is="m.route && !m.locked ? 'router-link' : 'span'"
 									:to="m.route || undefined"
 									class="library__node library__node--module"
-									:class="{ 'library__node--off': m.locked || !m.route }"
-									:title="m.locked ? t('phos', 'Ciphered: the key is not on the server yet') : m.name">
+									:class="{ 'library__node--off': m.locked || !m.route, 'library__node--local': m.localOnly }"
+									:title="m.localOnly ? t('phos', 'Only on {device}, not stored online — in Phos Desktop: right-click → “Online speichern (Nextcloud)”', { device: m.devices.join(', ') || 'Desktop' }) : m.locked ? t('phos', 'Ciphered: the key is not on the server yet') : m.name">
 									<NcIconSvgWrapper v-if="m.locked" :path="iconLock" :size="16" />
 									<span class="library__desc">{{ m.description || m.name }}</span>
 									<span v-if="m.description && m.description !== m.name" class="library__name">{{ m.name }}</span>
 									<NcIconSvgWrapper v-if="m.shared" :path="iconPerson" :size="16" :title="t('phos', 'Shared with you')" />
+									<span v-if="m.localOnly" class="library__local">{{ t('phos', 'only on {device}', { device: m.devices.join(', ') || 'Desktop' }) }}</span>
 								</component>
-								<ShareButton v-if="m.collection && isMine(m.collection)"
+								<ShareButton v-if="!m.localOnly && m.collection && isMine(m.collection)"
 									compact
 									type="module"
 									:record-key="'module:' + m.name"
@@ -60,7 +61,7 @@ import { t } from '@nextcloud/l10n'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { modules, state, prefs, lang, LIBRARY_GROUPS, libraryGroup, moduleRoute } from '../services/phos.js'
+import { modules, localOnlyModules, state, prefs, lang, LIBRARY_GROUPS, libraryGroup, moduleRoute } from '../services/phos.js'
 import * as I from '../icons.js'
 import { isMine } from '../services/share.js'
 import ShareButton from '../components/ShareButton.vue'
@@ -99,7 +100,7 @@ function langName(code) {
 const tree = computed(() => {
 	const f = filter.value.trim().toLowerCase()
 	const groups = new Map(LIBRARY_GROUPS.map(id => [id, new Map()]))
-	for (const m of modules.value) {
+	for (const m of [...modules.value, ...localOnlyModules.value]) {
 		if (m.readingPlan) {
 			continue
 		}
@@ -111,7 +112,9 @@ const tree = computed(() => {
 		if (!g.has(code)) {
 			g.set(code, [])
 		}
-		g.get(code).push({ ...m, route: moduleRoute(m), shared: !isMine(m.collection) })
+		g.get(code).push(m.localOnly
+			? { ...m, route: null, shared: false }
+			: { ...m, route: moduleRoute(m), shared: !isMine(m.collection) })
 	}
 	const out = []
 	for (const [id, langs] of groups) {
@@ -206,6 +209,18 @@ function toggle(id) {
 			flex: 1;
 			min-width: 0;
 		}
+	}
+
+	&__node--local {
+		opacity: 0.6;
+		font-style: italic;
+	}
+
+	&__local {
+		color: var(--color-text-maxcontrast);
+		font-size: 0.85em;
+		margin-inline-start: auto;
+		white-space: nowrap;
 	}
 
 	&__count,

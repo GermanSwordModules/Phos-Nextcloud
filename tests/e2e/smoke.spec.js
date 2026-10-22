@@ -631,3 +631,34 @@ test.describe('phone', () => {
 		expect(nav.height).toBeLessThan(60)
 	})
 })
+
+test('modules on both sides: what only a desktop has shows greyed, not readable; the tab has the bulb', async ({ page, request }) => {
+	await desktopPush(request, { type: 'moduleInventory', key: 'inv:dddddddddddddddd', payload: {
+		device: 'Arbeitszimmer',
+		modules: [
+			{ name: 'TINYZ', description: 'Fixture tinyz', modDrv: 'zText', lang: 'en', category: '', readingPlan: false },
+			{ name: 'NurLokal', description: 'Nur am Desktop', modDrv: 'zText', lang: 'de', category: '', readingPlan: false },
+			{ name: 'LokalLex', description: 'Lexikon am Desktop', modDrv: 'RawLD4', lang: 'de', category: '', readingPlan: false },
+		],
+	} })
+	await page.goto('/index.php/apps/phos/#/library')
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await page.locator('.library__filter input').fill('desktop')
+	const local = page.locator('.library__node--local', { hasText: 'Nur am Desktop' })
+	await expect(local).toBeVisible()
+	await expect(local).toContainText('nur auf Arbeitszimmer')
+	expect(await local.evaluate(el => el.tagName)).toBe('SPAN')               // not a link
+	await expect(page.locator('.library__node--local', { hasText: 'Lexikon am Desktop' })).toBeVisible()
+	await page.locator('.library__filter input').fill('tinyz')
+	await expect(page.locator('.library__node--module', { hasText: 'Fixture tinyz' })).toHaveCount(1)   // online: once, readable
+	await expect(page.locator('.library__node--local')).toHaveCount(0)
+	// the Bible picker lists it, but it cannot be chosen
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Gen/1')
+	await page.locator('.bible__module').first().locator('.vs__dropdown-toggle').click()
+	const opt = page.locator('.vs__dropdown-option', { hasText: 'NurLokal' })
+	await expect(opt).toContainText('nur auf Arbeitszimmer')
+	await expect(opt).toHaveClass(/vs__dropdown-option--disabled/)
+	// favicon: the light bulb
+	const href = await page.locator('link[rel="icon"][type="image/svg+xml"]').last().getAttribute('href')
+	expect(href).toMatch(/phos\/img\/favicon\.svg/)
+})

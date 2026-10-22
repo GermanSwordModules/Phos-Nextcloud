@@ -11,9 +11,10 @@ import { Hlc } from './hlc.js'
  */
 // workspace, pericope (exegesis), project, presentation, presTheme, ebook: read only here;
 // readingPosition: books and e-books only (pos:mod:<module>, pos:ebook:<ref>);
-// module, presAssets, projectOcc: only moved along when an item is shared (W-7)
+// module, presAssets, projectOcc: only moved along when an item is shared (W-7);
+// moduleInventory: what each desktop has installed (shown greyed when not online)
 export const SYNC_TYPES = ['bookmark', 'label', 'planProgress', 'setting', 'sermon', 'workspace', 'readingPosition',
-	'pericope', 'project', 'presentation', 'presTheme', 'ebook', 'module', 'presAssets', 'projectOcc']
+	'pericope', 'project', 'presentation', 'presTheme', 'ebook', 'module', 'presAssets', 'projectOcc', 'moduleInventory']
 
 const rk = (collection, type, key) => `${collection}\u0001${type}\u0001${key}`
 

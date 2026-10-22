@@ -355,6 +355,16 @@ original is not there. User themes themselves sync as `presTheme:<name>`
 - `POST /remote/cmd` from the phone: `{action: next|prev|first|last|goto|black, slide?}` → `{seq, action, slide, at}`.
 - `GET /remote` → `{cmd, state, now}`; the presenting page applies commands with a `seq` above the last it saw.
 
+## 14. Module lists of the devices
+
+`moduleInventory:inv:<device id>` (personal, lww), written by each desktop:
+`{device: "<device name>", modules: [{name, description, modDrv, lang, category, readingPlan}]}`
+— every installed module (bundled Phos modules left out), online or not.
+The web lists the ones that are not online greyed ("nur auf <device>"),
+not readable. Desktops do not apply other devices' lists. The desktop's
+library in turn shows modules that are only in the Nextcloud (its catalogue
+of all `module` records, `ncsync-modcatalog.json`), greyed, with "Herunterladen".
+
 ## 9. Garbage collection
 
 Background job daily: tombstones older than 180 days are purged and

@@ -64,7 +64,7 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import TextPopover from '../components/TextPopover.vue'
 import { useTextPopover } from '../components/useNotes.js'
-import { modules, getEntry, getKeys, prefs, defaultBible, pictureUrl } from '../services/phos.js'
+import { modules, getEntry, getKeys, prefs, defaultBible, pictureUrl, localOnlyOptions } from '../services/phos.js'
 import { render } from '../bible/render.js'
 import { parseRef } from '../bible/books.js'
 
@@ -75,7 +75,8 @@ const router = useRouter()
 const pop = useTextPopover()
 
 const dicts = computed(() => modules.value.filter(m => m.kind === 'dictionary' && !m.readingPlan))
-const options = computed(() => dicts.value.map(m => ({ id: m.name, label: `${m.name} – ${m.description}`, locked: m.locked })))
+const options = computed(() => dicts.value.map(m => ({ id: m.name, label: `${m.name} – ${m.description}`, locked: m.locked }))
+	.concat(localOnlyOptions('dictionary')))
 const moduleName = computed(() => {
 	const names = dicts.value.filter(m => !m.locked).map(m => m.name)
 	return [route.params.module, prefs.get('dict', null)].find(n => n && names.includes(n)) || names[0] || null

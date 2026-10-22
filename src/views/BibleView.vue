@@ -145,8 +145,7 @@ import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef, registerBookName } from '../bible/books.js'
 import {
 	bibles, commentaries, modules, getBooks, getChapter, getEntry, defaultBible, defaultCommentary, prefs, lang,
-	bookmarksIn, labels, resumePosition, rememberPosition,
-} from '../services/phos.js'
+	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions } from '../services/phos.js'
 import { iconPrev, iconNext } from '../icons.js'
 
 /**
@@ -184,9 +183,10 @@ const pop = useTextPopover()
 const option = m => ({
 	id: m.name, label: m.locked ? `🔒 ${m.name} – ${m.description}` : `${m.name} – ${m.description}`, locked: m.locked,
 })
-const bibleOptions = computed(() => ownModules.value.map(option))
+const bibleOptions = computed(() => [...ownModules.value.map(option), ...localOnlyOptions(isCommentary.value ? 'commentary' : 'bible')])
 // a Bible next to a commentary, or a commentary as a column next to the Bible
-const parallelOptions = computed(() => [...bibles.value, ...commentaries.value].map(option))
+const parallelOptions = computed(() => [...bibles.value, ...commentaries.value].map(option)
+	.concat(localOnlyOptions('bible'), localOnlyOptions('commentary')))
 const moduleSel = computed({
 	get: () => bibleOptions.value.find(o => o.id === moduleName.value) || null,
 	set: o => { if (o) { prefs.set(isCommentary.value ? 'commentary' : 'bible', o.id); go({ module: o.id }) } },

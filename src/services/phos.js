@@ -1,6 +1,6 @@
 import { reactive, ref, computed } from 'vue'
 import { getCurrentUser } from '@nextcloud/auth'
-import { getLanguage } from '@nextcloud/l10n'
+import { getLanguage, t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { http } from './api.js'
 import { SyncEngine } from '../sync/engine.js'
@@ -97,6 +97,53 @@ export function pictureUrl(module) {
 }
 
 // ---------- library ----------
+
+/** SWORD driver → module kind (server SwordModule::kindOf). */
+export function kindOfDriver(d) {
+	const x = String(d || '').toLowerCase()
+	if (['ztext', 'ztext4', 'rawtext', 'rawtext4'].includes(x)) {
+		return 'bible'
+	}
+	if (['zcom', 'zcom4', 'rawcom', 'rawcom4', 'hrefcom', 'rawfiles'].includes(x)) {
+		return 'commentary'
+	}
+	if (['zld', 'rawld', 'rawld4'].includes(x)) {
+		return 'dictionary'
+	}
+	return 'genbook'
+}
+
+/**
+ * Modules installed on one of the user's desktops but not stored online
+ * (moduleInventory records): listed greyed, not readable here.
+ * {name, description, kind, lang, category, readingPlan, localOnly, devices[]}
+ */
+export const localOnlyModules = computed(() => {
+	const online = new Set(modules.value.map(m => m.name))
+	const out = new Map()
+	for (const r of engine.list('moduleInventory')) {
+		const dev = r.payload?.device || ''
+		for (const m of r.payload?.modules || []) {
+			if (!m?.name || online.has(m.name)) {
+				continue
+			}
+			if (!out.has(m.name)) {
+				out.set(m.name, {
+					name: m.name, description: m.description || m.name, kind: kindOfDriver(m.modDrv), lang: m.lang || 'und',
+					category: m.category || '', readingPlan: !!m.readingPlan, localOnly: true, devices: [],
+				})
+			}
+			if (dev && !out.get(m.name).devices.includes(dev)) {
+				out.get(m.name).devices.push(dev)
+			}
+		}
+	}
+	return [...out.values()]
+})
+
+/** Picker entries for local-only modules of a kind: shown, not selectable. */
+export const localOnlyOptions = kind => localOnlyModules.value.filter(m => m.kind === kind && !m.readingPlan)
+	.map(m => ({ id: m.name, label: `${m.name} – ${m.description} (${t('phos', 'only on {device}', { device: m.devices.join(', ') || 'Desktop' })})`, locked: true, localOnly: true }))
 
 /** The desktop's library groups (unit1 BuildLibraryTree / unit_config CfgKindOfCategory). */
 export const LIBRARY_GROUPS = ['bible', 'commentary', 'book', 'dictionary', 'map']

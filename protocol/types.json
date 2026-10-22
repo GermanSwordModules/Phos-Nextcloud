@@ -112,6 +112,9 @@
         "text"
       ]
     },
+    "moduleInventory": {
+      "policy": "lww"
+    },
     "presTheme": {
       "policy": "lww"
     },
