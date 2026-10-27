@@ -1,0 +1,61 @@
+{
+  "//": "Equirectangular blanks. top/bottom/left/right are the corner degrees that make lon/lat -> pixel linear; they come from en.wikipedia's Module:Location map/data/<name>, or, for an atlas plate, from that module's own graticule.tsv (lon_min/lon_max/lat_min/lat_max).",
+  "//pick": "The payload builder picks: the FIRST map in this list whose box contains every point (plus a small margin) wins, so keep the list ordered narrowest first. Nothing fits -> the last one, and the caller says so.",
+  "default": "israel-relief",
+  "maps": [
+    {
+      "id": "israel-relief",
+      "label": "Israel · Relief",
+      "kind": "physical",
+      "file": "maps/israel-relief-blank.jpg",
+      "fileSmall": "maps/israel-relief-blank@sm.jpg",
+      "top": 33.5,
+      "bottom": 29.3,
+      "left": 33.7,
+      "right": 36.3,
+      "source": "Module:Location map/data/Israel",
+      "credit": "Eric Gaba (Sting), CC BY-SA 3.0",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Israel_relief_location_map-blank.jpg",
+      "pxWidth": 760,
+      "pxHeight": 1412,
+      "pxWidthSmall": 420,
+      "pxHeightSmall": 780
+    },
+    {
+      "id": "neareast-relief",
+      "label": "Vorderer Orient · Relief",
+      "kind": "physical",
+      "file": "maps/neareast-relief.jpg",
+      "fileSmall": "maps/neareast-relief@sm.jpg",
+      "top": 43.4,
+      "bottom": 22.4,
+      "left": 24.9,
+      "right": 62.1,
+      "source": "Module:Location map/data/Near East",
+      "credit": "DEMIS Mapserver / Wikimedia Commons, CC BY-SA 3.0",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Near_East_non_political.png",
+      "pxWidth": 900,
+      "pxHeight": 509,
+      "pxWidthSmall": 480,
+      "pxHeightSmall": 271
+    },
+    {
+      "id": "mediterranean-relief",
+      "label": "Mittelmeer · Relief",
+      "kind": "physical",
+      "file": "maps/mediterranean-relief.jpg",
+      "fileSmall": "maps/mediterranean-relief@sm.jpg",
+      "top": 48.0,
+      "bottom": 29.0,
+      "left": -7.0,
+      "right": 42.5,
+      "source": "Module:Location map/data/Mediterranean",
+      "credit": "Nzeemin / Wikimedia Commons, CC BY-SA 3.0",
+      "creditUrl": "https://commons.wikimedia.org/wiki/File:Relief_Map_of_Mediterranean_Sea.png",
+      "pxWidth": 900,
+      "pxHeight": 442,
+      "pxWidthSmall": 480,
+      "pxHeightSmall": 236
+    }
+  ]
+}

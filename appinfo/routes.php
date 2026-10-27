@@ -11,6 +11,8 @@ return [
 		['name' => 'files#get', 'url' => '/files/{collection}/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
 		// pictures of books and maps, as their text names them (W-3-B)
 		['name' => 'module_file#get', 'url' => '/module/{module}/file', 'verb' => 'GET'],
+		// the shared web/facts/ bundle (Phase 3, Scope 1), the app's own static asset
+		['name' => 'facts_asset#get', 'url' => '/facts-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
 	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
@@ -41,6 +43,9 @@ return [
 		['name' => 'reader#media', 'url' => '/api/v1/media/{book}/{chapter}', 'verb' => 'GET'],
 		['name' => 'reader#search', 'url' => '/api/v1/modules/{module}/search', 'verb' => 'GET'],
 		['name' => 'reader#bookEntry', 'url' => '/api/v1/modules/{module}/book', 'verb' => 'GET'],
+		// Fakten/Facts (Phase 3, Scope 1)
+		['name' => 'facts#topics', 'url' => '/api/v1/facts', 'verb' => 'GET'],
+		['name' => 'facts#build', 'url' => '/api/v1/facts/{key}', 'verb' => 'GET', 'requirements' => ['key' => '.+']],
 		// phone remote for a deck shown in the web (W-6)
 		['name' => 'remote#get', 'url' => '/api/v1/remote', 'verb' => 'GET'],
 		['name' => 'remote#command', 'url' => '/api/v1/remote/cmd', 'verb' => 'POST'],

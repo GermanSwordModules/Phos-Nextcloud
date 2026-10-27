@@ -1,0 +1,242 @@
+/* Phos · Facts page. Loaded verbatim by the desktop (CEF) and the Android app.
+ *
+ * Every colour is a token, defined once here in light and once in dark, because the two hosts
+ * decide the theme differently: the desktop stamps data-theme on <html>, the app can also leave
+ * it to the OS. Nothing below sets a colour outside the token blocks.
+ *
+ * The --fx-* tokens are the ones charts.js reads (see its palette()/freeze()); they are the
+ * contract between this file and the figures, so renaming one is a breaking change.
+ */
+:root{
+  --bg:#ffffff; --sunk:#eef1f5; --ink:#14161b; --ink-2:#565c66; --ink-3:#7c838e;
+  --rule:#e0e4e9; --rule-soft:#eef1f4; --accent:#2a78d6; --accent-soft:#dceafa;
+  --fx-ink:#14161b; --fx-ink2:#565c66; --fx-ink3:#7c838e; --fx-rule:#e0e4e9; --fx-surface:#ffffff;
+  --fx-s1:#2a78d6; --fx-s2:#eb6834; --fx-s3:#1baf7a; --fx-neutral:#c3c9d1;
+  --map-filter:none;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#1a1d23; --sunk:#15181d; --ink:#eef0f4; --ink-2:#9aa2ad; --ink-3:#79818c;
+  --rule:#2a2f38; --rule-soft:#22262d; --accent:#3987e5; --accent-soft:#1b2f4a;
+  --fx-ink:#eef0f4; --fx-ink2:#9aa2ad; --fx-ink3:#79818c; --fx-rule:#2a2f38; --fx-surface:#1a1d23;
+  --fx-s1:#3987e5; --fx-s2:#d95926; --fx-s3:#199e70; --fx-neutral:#454c57;
+  /* The Wikimedia blanks are drawn for light surfaces. Until a dark variant exists this is the
+     honest stopgap, and it is one line to delete when one does. */
+  --map-filter:invert(.9) hue-rotate(180deg) saturate(.75);
+}}
+:root[data-theme="dark"]{
+  --bg:#1a1d23; --sunk:#15181d; --ink:#eef0f4; --ink-2:#9aa2ad; --ink-3:#79818c;
+  --rule:#2a2f38; --rule-soft:#22262d; --accent:#3987e5; --accent-soft:#1b2f4a;
+  --fx-ink:#eef0f4; --fx-ink2:#9aa2ad; --fx-ink3:#79818c; --fx-rule:#2a2f38; --fx-surface:#1a1d23;
+  --fx-s1:#3987e5; --fx-s2:#d95926; --fx-s3:#199e70; --fx-neutral:#454c57;
+  --map-filter:invert(.9) hue-rotate(180deg) saturate(.75);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:var(--reader-font-size,15px); line-height:1.55;}
+a{color:var(--accent); text-decoration:none;}
+/* Reported: "ich kann nirgendwo etwas markieren zum Kopieren". A drag that starts inside an <a>
+   drags the link instead of selecting text, and the passage rows and dictionary cards ARE links.
+   This gives the selection back without making them any less clickable. */
+a{-webkit-user-drag:none;}
+body,.prow,.dcard,.ptext,.dbody,.prose{-webkit-user-select:text; user-select:text;}
+a:hover{text-decoration:underline;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.86em;
+  background:var(--rule-soft); padding:.1em .35em; border-radius:3px;}
+
+.thead{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:22px 24px 14px;}
+.thead h1{font-size:1.8em; font-weight:600; letter-spacing:-.02em; margin:0; text-wrap:balance;}
+.tsub{font-size:.84em; color:var(--ink-2); margin:5px 0 0;}
+.tacts{display:flex; gap:8px; flex-shrink:0;}
+.tacts button{font:500 .8em/1 inherit; color:var(--ink-2); background:transparent;
+  border:1px solid var(--rule); border-radius:99px; padding:7px 12px; cursor:pointer;}
+.tacts button:hover{border-color:var(--accent); color:var(--accent);}
+
+.secnav{position:sticky; top:0; z-index:2; display:flex; gap:4px; overflow-x:auto;
+  padding:8px 24px; background:var(--bg); border-bottom:1px solid var(--rule);}
+.secnav a{font-size:.83em; color:var(--ink-2); padding:5px 11px; border-radius:99px; white-space:nowrap;}
+.secnav a.on{background:var(--accent-soft); color:var(--accent); font-weight:500;}
+
+.sec{padding:22px 24px 6px; border-bottom:1px solid var(--rule-soft); scroll-margin-top:44px;}
+.sec:last-of-type{border-bottom:0;}
+.sec h2{font-size:1em; font-weight:600; margin:0 0 4px; display:flex; align-items:center; gap:8px;}
+.sec .count{font:400 .78em/1 ui-monospace,monospace; color:var(--ink-3);}
+.sec .lede{font-size:.83em; color:var(--ink-2); margin:0 0 12px;}
+.sec .foot{font-size:.78em; color:var(--ink-3); margin:10px 0 14px; display:flex; gap:12px; flex-wrap:wrap;}
+.sec .prose{margin:8px 0 12px;}
+.sec .prose p{margin:0 0 .7em;}
+
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px;}
+.chip{font-size:.8em; color:var(--ink-2); background:var(--rule-soft); border-radius:99px; padding:5px 11px;}
+.chip b{color:var(--ink); font-weight:500;}
+
+/* Key passages: the vote score is the row's own background, so the ranking chart and the list
+   are one object instead of a chart plus a duplicate list underneath. */
+.plist{display:flex; flex-direction:column; gap:1px; background:var(--rule-soft); border-radius:8px; overflow:hidden;}
+.prow{display:grid; grid-template-columns:136px 1fr 28px auto; gap:12px; align-items:baseline;
+  padding:9px 12px; color:inherit; background:var(--bg); position:relative;}
+.prow::before{content:""; position:absolute; inset:0 auto 0 0; width:var(--w,0%);
+  background:color-mix(in oklab, var(--fx-s1) 13%, transparent); pointer-events:none;}
+.prow:hover::before{background:color-mix(in oklab, var(--fx-s1) 22%, transparent);}
+.prow:hover{text-decoration:none;}
+.prow>*{position:relative;}
+.pref{font-family:ui-monospace,monospace; font-size:.83em; color:var(--accent); font-weight:500;}
+.ptext{font-size:.9em; line-height:1.5;}
+.pscore{font-family:ui-monospace,monospace; font-size:.76em; color:var(--ink-3); text-align:right;
+  font-variant-numeric:tabular-nums;}
+
+.dgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; margin-bottom:14px;}
+.dcard{display:flex; flex-direction:column; gap:3px; padding:11px 13px;
+  border:1px solid var(--rule); border-radius:8px; color:inherit;}
+.dcard:hover{border-color:var(--accent); text-decoration:none;}
+.dhead{font-size:.93em; font-weight:600; color:var(--accent);}
+.dmod{font-family:ui-monospace,monospace; font-size:.7em; color:var(--ink-3);}
+.dbody{font-size:.86em; line-height:1.5; color:var(--ink-2); margin-top:3px;}
+
+.mstrip{display:flex; gap:10px; overflow-x:auto; padding-bottom:4px;}
+.mtile{flex:0 0 132px; font-size:.76em; color:var(--ink-2);}
+.mtile img{display:block; width:132px; height:82px; object-fit:cover; border-radius:6px; margin-bottom:5px;}
+.hits{list-style:none; padding:0; margin:4px 0 0; display:flex; flex-direction:column; gap:7px;}
+.hits li{display:flex; gap:10px; flex-wrap:wrap; font-size:.86em;}
+.hits li a{font-weight:500;}
+.hits li span{color:var(--ink-2);}
+
+/* ---- figures ---- */
+.fig{margin:4px 0 2px;}
+.fig .plot{overflow-x:auto;}
+.fig svg{display:block; width:100%; height:auto;}
+.fig .fx-table{display:none;}
+.fig.as-table .plot{display:none;}
+.fig.as-table .fx-table{display:table;}
+.fx-table{width:100%; border-collapse:collapse; font-size:.82em; margin:4px 0 2px;}
+.fx-table th{text-align:left; font-weight:500; font-size:.85em; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-3); padding:0 10px 6px 0; border-bottom:1px solid var(--rule);}
+.fx-table td{padding:6px 10px 6px 0; border-bottom:1px solid var(--rule-soft);
+  font-variant-numeric:tabular-nums;}
+.figacts{display:flex; gap:12px; font-size:.78em; color:var(--ink-3); margin-top:6px; flex-wrap:wrap;}
+.figacts button{font:inherit; color:var(--ink-3); background:none; border:0; padding:0; cursor:pointer;
+  text-decoration:underline; text-underline-offset:2px;}
+.figacts button:hover{color:var(--accent);}
+.credit{color:var(--ink-3);}
+
+/* svg text classes — sizes only; every fill is set inline from the palette */
+.fx-ax{font-family:ui-monospace,monospace; font-size:11px;}
+.fx-val{font-family:ui-monospace,monospace; font-size:11px; font-variant-numeric:tabular-nums;}
+.fx-val-n{font-size:11px;}
+.fx-row{font-family:ui-monospace,monospace; font-size:12.5px;}
+.fx-seg{font-size:12px; font-weight:500;}
+.fx-ev{font-size:11.5px;}
+.fx-ev-ref{font-family:ui-monospace,monospace; font-size:10px;}
+.fx-node{font-size:13px; font-weight:500;}
+.fx-node-s{font-family:ui-monospace,monospace; font-size:10px;}
+.fx-bar{cursor:pointer;}
+.fx-bar:hover{filter:brightness(1.12);}
+.fx-dot{cursor:pointer;}
+.fx-dot-lab{paint-order:stroke fill; stroke-linejoin:round;}
+.fx-mapbg{filter:var(--map-filter); opacity:.95;}
+
+#tip{position:fixed; pointer-events:none; opacity:0; transform:translate(-50%,-140%);
+  background:var(--ink); color:var(--bg); font-family:ui-monospace,monospace; font-size:.76em;
+  padding:5px 9px; border-radius:5px; white-space:nowrap; z-index:9; transition:opacity .08s;}
+
+@media (max-width:560px){
+  .thead{padding:16px 14px 10px; flex-direction:column; gap:10px;}
+  .secnav,.sec{padding-left:14px; padding-right:14px;}
+  .prow{grid-template-columns:84px 1fr; row-gap:2px;}
+  .prow .pscore{display:none;}
+  .dgrid{grid-template-columns:1fr;}
+  .fig .plot svg{min-width:460px;}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- sources of a generated answer (unit_facts.RenderSummary) ---- */
+.fx-note{font-size:.83em; color:var(--ink-2); margin:2px 0 8px;}
+.fx-sources{list-style:none; padding:0; margin:0 0 10px; display:flex; flex-direction:column; gap:7px;}
+.fx-sources li{font-size:.88em;}
+.fx-sources a{font-weight:500;}
+.fx-src{color:var(--ink-3); font-size:.9em;}
+/* The snippet is there for a glance, not for reading: two lines, and the full text is the
+   link's tooltip. */
+.fx-snip{color:var(--ink-2); font-size:.86em; line-height:1.45; margin-top:2px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.fx-ai{margin:6px 0 10px; border-top:1px solid var(--rule-soft); padding-top:8px;}
+.fx-ai summary{cursor:pointer; font-size:.83em; color:var(--ink-2);}
+.fx-ai[open] summary{margin-bottom:6px;}
+
+/* ---- the verses behind one bar of the canon strip ---- */
+.bookhits{border:1px solid var(--rule); border-radius:8px; margin:6px 0 14px; overflow:hidden;}
+.bookhits-h{display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--rule-soft);
+  font-size:.83em; color:var(--ink-2); font-weight:500;}
+.bookhits-x{margin-left:auto; font:inherit; font-size:1.2em; line-height:1; color:var(--ink-3);
+  background:none; border:0; cursor:pointer; padding:0 2px;}
+.bookhits-x:hover{color:var(--accent);}
+.bookhits-l{display:flex; flex-wrap:wrap; gap:2px 10px; padding:9px 10px; max-height:220px; overflow:auto;}
+.bookhits-l a{font-family:ui-monospace,Menlo,monospace; font-size:.8em; white-space:nowrap;}
+.fx-bar{cursor:pointer;}
+
+/* ---- the verse preview the rest of the app has on every reference ---- */
+.vpreview{position:fixed; z-index:20; max-width:360px; opacity:0; transition:opacity .1s;
+  background:var(--bg); color:var(--ink); border:1px solid var(--rule); border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,.08), 0 18px 40px -22px rgba(0,0,0,.5);
+  padding:10px 12px; font-size:.86em; line-height:1.5; pointer-events:none;}
+.vpreview b{color:var(--accent);}
+.fx-node-g{cursor:pointer;}
+.fx-node-g:hover rect{stroke:var(--fx-s1);}
+
+/* ---- collapsible groups (books by book, lexicon articles by lexicon) ---- */
+.grp{border-bottom:1px solid var(--rule-soft);}
+.grp:last-child{border-bottom:0;}
+.grp>summary{display:flex; align-items:baseline; gap:8px; cursor:pointer; padding:8px 2px;
+  list-style:none;}
+.grp>summary::-webkit-details-marker{display:none;}
+.grp>summary::before{content:"▸"; color:var(--ink-3); font-size:.8em; width:1em; flex:0 0 1em;}
+.grp[open]>summary::before{content:"▾";}
+.grp-n{font-weight:600; font-size:.93em;}
+.grp-s{color:var(--ink-3); font-size:.8em;}
+.grp-c{margin-left:auto; font-family:ui-monospace,monospace; font-size:.76em; color:var(--ink-3);
+  background:var(--rule-soft); border-radius:99px; padding:1px 8px;}
+.grp-i{display:flex; flex-direction:column; gap:1px; padding:0 0 8px 1.6em;}
+.grow{display:flex; flex-direction:column; gap:1px; padding:6px 8px; border-radius:6px; color:inherit;}
+.grow:hover{background:var(--rule-soft); text-decoration:none;}
+.grow-t{font-size:.88em; color:var(--accent); font-weight:500;}
+.grow-s{font-family:ui-monospace,monospace; font-size:.72em; color:var(--ink-3);}
+.grow-x{font-size:.84em; line-height:1.45; color:var(--ink-2);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+
+/* ---- media tiles: a grid that follows the column's width ---- */
+.tgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px;
+  margin-bottom:14px;}
+.tile{display:flex; flex-direction:column; gap:4px; color:inherit;}
+.tile:hover{text-decoration:none;}
+.tile img,.tile .tile-x{display:block; width:100%; aspect-ratio:4/3; object-fit:cover;
+  border-radius:8px; border:1px solid var(--rule); background:var(--rule-soft);}
+.tile:hover img{border-color:var(--accent);}
+.tile-t{font-size:.82em; line-height:1.35;}
+.tile-s{font-size:.74em; color:var(--ink-3);}
+
+/* a book's cover in its group header */
+.grp-img{width:26px; height:36px; object-fit:cover; border-radius:3px; border:1px solid var(--rule);
+  flex:0 0 auto; margin-right:2px;}
+.grp>summary{align-items:center;}
+
+/* ---- figures are sized in em, not in % ----
+   A graphic at width:100% keeps the same physical size when the page is zoomed: the viewport
+   shrinks in CSS pixels by exactly as much as everything grows. Text scales, the map did not —
+   "die Karte skaliert nicht mit". Sizing figures against the font makes them follow the zoom
+   like every other element, and max-width keeps them inside a narrow column. */
+.fig .plot{display:flex; justify-content:center;}
+.fig .plot > svg{width:auto; height:auto; max-width:100%; max-height:46em;}
+/* a canon strip or a timeline is wide and short: full column width, and a width in em so it, too,
+   grows with the zoom until the column runs out */
+.fig .plot > svg.wide{width:64em; max-height:none;}
+.fx-row{font-size:10.5px;}
+
+/* study-project actions (desktop: payload.canProject) */
+.padd{opacity:0; color:var(--fx-s1); font-weight:600; padding:0 4px; border-radius:4px; cursor:pointer;}
+.prow:hover .padd{opacity:.85;}
+.padd:hover{opacity:1; background:color-mix(in oklab, var(--fx-s1) 18%, transparent);}
+.tproj{flex:0 0 auto; font:inherit; font-size:.85em; padding:6px 12px; border-radius:16px; cursor:pointer;
+  border:1px solid var(--rule); background:var(--bg); color:var(--fx-s1);}
+.tproj:hover{background:color-mix(in oklab, var(--fx-s1) 10%, transparent);}

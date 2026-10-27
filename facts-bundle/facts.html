@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fakten</title>
+<link rel="stylesheet" href="facts.css">
+</head>
+<body>
+<!-- The host fills this: either by writing `window.PHOS_FACTS = {...}` into the document before
+     it loads (desktop writes a temp file), or by calling PhosFacts.render(payload) over the
+     bridge once the page is up (the app does that, and again on every new topic). -->
+<main id="facts"></main>
+<div id="tip" role="status" aria-live="polite"></div>
+<script src="charts.js"></script>
+<script src="facts.js"></script>
+<script>
+  if (window.PHOS_FACTS) PhosFacts.render(window.PHOS_FACTS);
+</script>
+</body>
+</html>

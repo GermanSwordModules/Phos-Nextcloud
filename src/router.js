@@ -14,6 +14,7 @@ const routes = [
 	{ path: '/pads/:label?', name: 'pads', component: () => import('./views/StudyPadsView.vue') },
 	{ path: '/plan/:module?', name: 'plan', component: () => import('./views/PlanView.vue') },
 	{ path: '/sermons/:id?', name: 'sermons', component: () => import('./views/SermonsView.vue') },
+	{ path: '/facts/:key?', name: 'facts', component: () => import('./views/FactsView.vue') },
 	{ path: '/projects/:id?', name: 'projects', component: () => import('./views/ProjectsView.vue') },
 	{ path: '/exegesis/:id', name: 'exegesis', component: () => import('./views/ExegesisView.vue') },
 	{ path: '/decks/:id?', name: 'decks', component: () => import('./views/DecksView.vue') },

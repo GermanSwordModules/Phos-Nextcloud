@@ -68,6 +68,7 @@ const nav = computed(() => [
 	{ to: '/pads', name: t('phos', 'Study pads'), icon: I.iconPads },
 	{ to: '/plan', name: t('phos', 'Reading plan'), icon: I.iconPlan },
 	{ to: '/sermons', name: t('phos', 'Sermons'), icon: I.iconSermon },
+	{ to: '/facts', name: t('phos', 'Facts'), icon: I.iconFacts },
 	{ to: '/projects', name: t('phos', 'Projects'), icon: I.iconProjects },
 	{ to: '/decks', name: t('phos', 'Presentations'), icon: I.iconDecks },
 	{ to: '/remote', name: t('phos', 'Remote'), icon: I.iconRemote },

@@ -38,4 +38,5 @@ export {
 	mdiPresentation as iconDecks,
 	mdiBookOpenVariant as iconEbooks,
 	mdiCellphoneLink as iconRemote,
+	mdiLightbulbOutline as iconFacts,
 } from '@mdi/js'
