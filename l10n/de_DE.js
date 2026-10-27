@@ -322,6 +322,9 @@ OC.L10N.register(
         "Previous page": "Vorige Seite",
         "Next page": "Nächste Seite",
         "Download": "Herunterladen",
-        "This e-book could not be opened: {error}": "Dieses E-Book ließ sich nicht öffnen: {error}"
+        "This e-book could not be opened: {error}": "Dieses E-Book ließ sich nicht öffnen: {error}",
+        "Has a saved syntax diagram": "Hat ein gespeichertes Satzdiagramm",
+        "Syntax diagram": "Satzdiagramm",
+        "Saved from the desktop app -- read-only here.": "Gespeichert in der Desktop-App – hier nur lesbar."
     },
 "nplurals=2; plural=(n != 1);");

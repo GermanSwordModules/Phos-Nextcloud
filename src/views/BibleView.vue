@@ -98,6 +98,13 @@
 							class="bible__notemark"
 							:title="t('phos', 'Has a note')"
 							:data-verse="v">✎</button>
+						<button v-if="syntaxVerses.has(v) && c === columns[0]"
+							type="button"
+							class="bible__syntaxmark"
+							:title="t('phos', 'Has a saved syntax diagram')"
+							:data-verse="v">
+							<NcIconSvgWrapper :path="iconSyntax" :size="14" />
+						</button>
 					</span>
 				</div>
 			</div>
@@ -116,6 +123,8 @@
 			:subname="t('phos', 'Bookmarks and notes')"
 			@close="selection = null">
 			<div class="bible__sidebar">
+				<SyntaxDiagramPanel v-if="selection.from === selection.to"
+					:osis="`${book}.${chapter}.${selection.from}`" />
 				<BookmarkPanel :book="book"
 					:chapter="chapter"
 					:from="selection.from"
@@ -146,8 +155,9 @@ import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef, registerBookName } from '../bible/books.js'
 import {
 	bibles, commentaries, modules, getBooks, getChapter, getEntry, defaultBible, defaultCommentary, prefs, lang,
-	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions } from '../services/phos.js'
-import { iconPrev, iconNext } from '../icons.js'
+	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions, syntaxDiagramFor } from '../services/phos.js'
+import SyntaxDiagramPanel from '../components/SyntaxDiagramPanel.vue'
+import { iconPrev, iconNext, iconSyntax } from '../icons.js'
 
 /**
  * The Bible text, standalone (route `bible`) or as the left half of the
@@ -381,6 +391,9 @@ watch(() => [moduleName.value, book.value, chapter.value, parallelName.value, ro
 
 const chapterBookmarks = computed(() => book.value ? bookmarksIn(book.value, chapter.value, moduleName.value) : [])
 const noteVerses = computed(() => new Set(chapterBookmarks.value.filter(b => b.noteMd || b.noteHtml).map(b => b.vStart)))
+const syntaxVerses = computed(() => book.value
+	? new Set(verseNumbers.value.filter(v => syntaxDiagramFor(`${book.value}.${chapter.value}.${v}`)))
+	: new Set())
 
 function verseStyle(v) {
 	const bm = chapterBookmarks.value.find(b => b.vStart <= v && (b.vEnd || b.vStart) >= v && b.labelNames?.length)
@@ -671,6 +684,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 	&__notemark {
 		all: unset;
 		cursor: pointer;
+		margin-left: 4px;
+		color: var(--color-primary-element);
+	}
+
+	&__syntaxmark {
+		all: unset;
+		cursor: pointer;
+		display: inline-flex;
+		vertical-align: middle;
 		margin-left: 4px;
 		color: var(--color-primary-element);
 	}

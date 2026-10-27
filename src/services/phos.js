@@ -230,6 +230,21 @@ export function labelDisplay(name) {
 
 export const bookmarks = computed(() => engine.list('bookmark').map(r => ({ ...r.payload, key: r.key, collection: r.collection, pending: !!r.pending })))
 
+/* Read-only (Phase 3, Scope 3): the free-form diagrams desktop's Satzbau/Syntax tool saves per
+ * verse (unit_syntaxview.pas, <DocumentsDir>syntax/<osis>.json) -- not the live Macula tree
+ * query, which needs the ~100 MB syntax.sqlite this app doesn't have. */
+export const syntaxDiagrams = computed(() => {
+	const out = new Map()
+	for (const r of engine.list('syntaxDiagram')) {
+		out.set(r.key.slice('syntaxDiagram:'.length), r.payload)
+	}
+	return out
+})
+
+export function syntaxDiagramFor(osis) {
+	return syntaxDiagrams.value.get(osis) || null
+}
+
 export function newId() {
 	const b = new Uint8Array(16)
 	crypto.getRandomValues(b)

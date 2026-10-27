@@ -12,9 +12,12 @@ import { Hlc } from './hlc.js'
 // workspace, pericope (exegesis), project, presentation, presTheme, ebook: read only here;
 // readingPosition: books and e-books only (pos:mod:<module>, pos:ebook:<ref>);
 // module, presAssets, projectOcc: only moved along when an item is shared (W-7);
-// moduleInventory: what each desktop has installed (shown greyed when not online)
+// moduleInventory: what each desktop has installed (shown greyed when not online);
+// syntaxDiagram: read only here too (Phase 3, Scope 3) -- the saved free diagram, rendered
+// read-only via the web/syntax/ bundle; no live Macula-tree query on this host
 export const SYNC_TYPES = ['bookmark', 'label', 'planProgress', 'setting', 'sermon', 'workspace', 'readingPosition',
-	'pericope', 'project', 'presentation', 'presTheme', 'ebook', 'module', 'presAssets', 'projectOcc', 'moduleInventory']
+	'pericope', 'project', 'presentation', 'presTheme', 'ebook', 'module', 'presAssets', 'projectOcc', 'moduleInventory',
+	'syntaxDiagram']
 
 const rk = (collection, type, key) => `${collection}\u0001${type}\u0001${key}`
 

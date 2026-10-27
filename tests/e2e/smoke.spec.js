@@ -662,3 +662,30 @@ test('modules on both sides: what only a desktop has shows greyed, not readable;
 	const href = await page.locator('link[rel="icon"][type="image/svg+xml"]').last().getAttribute('href')
 	expect(href).toMatch(/phos\/img\/favicon\.svg/)
 })
+
+test('syntax diagram saved on the desktop shows read-only in the sidebar (Phase 3, Scope 3)', async ({ page, request }) => {
+	const diagram = {
+		osis: 'John.3.16',
+		els: [
+			{ k: 't', x: 40, y: 60, t: 'For God', c: 'wd', r: 0, w: -1 },
+			{ k: 'l', x1: 30, y1: 80, x2: 200, y2: 80, c: 'base' },
+		],
+		w: 400, h: 140,
+	}
+	await desktopPush(request, { type: 'syntaxDiagram', key: 'syntaxDiagram:John.3.16', payload: diagram })
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/John/3')
+	await expect(page.locator('.bible__text')).toBeVisible()
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+
+	const marker = page.locator('.bible__text [data-v="16"] .bible__syntaxmark')
+	await expect(marker).toBeVisible()
+	// a verse with no diagram gets no marker
+	await expect(page.locator('.bible__text [data-v="15"] .bible__syntaxmark')).toHaveCount(0)
+
+	await marker.click()
+	const sidebar = page.locator('.app-sidebar')
+	await expect(sidebar).toContainText('Satzdiagramm')
+	const diagramFrame = page.frameLocator('.syn-panel__frame')
+	await expect(diagramFrame.locator('#view svg text').first()).toContainText('For God')
+	await expect(diagramFrame.locator('#tools')).toHaveCount(0)   // read-only: no drawing toolbar
+})

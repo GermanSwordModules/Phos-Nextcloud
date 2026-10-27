@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Syntax</title>
+<link rel="stylesheet" href="syntax.css">
+</head>
+<body>
+<!-- The host fills this: either by writing `window.PHOS_SYNTAX = {...}` into the document before
+     it loads, or by calling PhosSyntax.load(payload) over the bridge once the page is up (desktop
+     itself never uses this file -- it builds the same markup inline, see unit_syntaxview.pas
+     SyntaxPageHtml; this standalone page is for hosts that load a static file/URL instead, per
+     docs/shareable-tool-bundles.md). -->
+<div id="modes"></div>
+<div id="head"></div>
+<div id="view"></div>
+<script src="syntax.js"></script>
+<script>
+  if (window.PHOS_SYNTAX) PhosSyntax.load(window.PHOS_SYNTAX);
+</script>
+</body>
+</html>

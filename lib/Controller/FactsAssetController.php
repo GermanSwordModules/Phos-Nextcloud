@@ -9,6 +9,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\AppFramework\Http\StreamResponse;
 use OCP\IRequest;
 
@@ -50,6 +51,19 @@ class FactsAssetController extends Controller {
 		$resp->addHeader('Content-Type', $type);
 		$resp->addHeader('Content-Length', (string)filesize($full));
 		$resp->cacheFor(3600);
+		// StreamResponse defaults to frame-ancestors 'none' (EmptyContentSecurityPolicy::buildPolicy),
+		// which silently blocked FactsView.vue's own <iframe src="facts.html"> (same-origin, this app)
+		// -- caught by SyntaxDiagramPanel.vue hitting the identical bug in SyntaxAssetController.
+		// EmptyContentSecurityPolicy (not the OCP ContentSecurityPolicy subclass) makes CSPMiddleware
+		// skip merging in the app's own default policy and nonce -- facts.html's inline bootstrap
+		// script has no nonce, so merging would block it regardless of 'unsafe-inline' here.
+		$csp = new EmptyContentSecurityPolicy();
+		$csp->addAllowedFrameAncestorDomain("'self'");
+		$csp->addAllowedScriptDomain("'self'");
+		$csp->addAllowedScriptDomain("'unsafe-inline'");
+		$csp->addAllowedStyleDomain("'self'");
+		$csp->addAllowedImageDomain("'self'");
+		$resp->setContentSecurityPolicy($csp);
 		return $resp;
 	}
 }

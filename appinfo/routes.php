@@ -13,6 +13,9 @@ return [
 		['name' => 'module_file#get', 'url' => '/module/{module}/file', 'verb' => 'GET'],
 		// the shared web/facts/ bundle (Phase 3, Scope 1), the app's own static asset
 		['name' => 'facts_asset#get', 'url' => '/facts-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
+		// the shared web/syntax/ bundle (Phase 3, Scope 3), the app's own static asset; the
+		// diagram data itself is just a regular 'syntaxDiagram' record, read via /api/v1/changes
+		['name' => 'syntax_asset#get', 'url' => '/syntax-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
 	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],

@@ -40,4 +40,5 @@ export {
 	mdiCellphoneLink as iconRemote,
 	mdiLightbulbOutline as iconFacts,
 	mdiContentCopy as iconCopy,
+	mdiFamilyTree as iconSyntax,
 } from '@mdi/js'
