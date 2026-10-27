@@ -8,7 +8,7 @@ import { getEntry, lexiconsFor } from '../services/phos.js'
  * the data-note id among the notes the renderer returned.
  */
 export function useTextPopover() {
-	const popover = ref(null)  // { x, y, title, html }
+	const popover = ref(null)  // { x, y, title, html, text? } -- text only set for a word (showStrong)
 	let hoverTimer = null
 
 	function place(el) {
@@ -28,7 +28,10 @@ export function useTextPopover() {
 			return
 		}
 		const at = place(el)
-		popover.value = { ...at, title: nums.join(' '), html: '…' }
+		// WP: the tapped word's own surface text, so TextPopover can offer Copy/Search for it --
+		// word scope's "pick an action" counterpart to BookmarkPanel's verse-scope actions.
+		const text = el.textContent || ''
+		popover.value = { ...at, title: nums.join(' '), text, html: '…' }
 		const parts = []
 		for (const num of nums) {
 			let html = `<i>${num.replace(/[^\w]/g, '')}</i>`
@@ -44,7 +47,7 @@ export function useTextPopover() {
 			parts.push(html)
 		}
 		if (popover.value && popover.value.title === nums.join(' ')) {
-			popover.value = { ...at, title: nums.join(' '), html: parts.join('<hr>') }
+			popover.value = { ...at, title: nums.join(' '), text, html: parts.join('<hr>') }
 		}
 	}
 

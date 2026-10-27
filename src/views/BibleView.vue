@@ -106,7 +106,8 @@
 		<TextPopover :popover="pop.popover.value"
 			@keep="pinPopover"
 			@ref="gotoRef"
-			@dict="showDict" />
+			@dict="showDict"
+			@search="searchWord" />
 
 		<!-- the sidebar belongs next to NcAppContent, not inside it -->
 		<Teleport to="#content-vue">
@@ -454,6 +455,12 @@ function gotoRef(ref) {
 	if (r) {
 		go({ book: r.book, chapter: r.c1, v: r.v1 || undefined })
 	}
+}
+
+/** "Search" on a word popover -- the module search, carrying the word as the query, same
+ * route contract SearchView.vue's own query box already produces. */
+function searchWord(text) {
+	router.push({ name: 'search', query: { q: text, m: moduleName.value } })
 }
 
 async function showDict(module, key) {

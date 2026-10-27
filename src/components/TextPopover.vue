@@ -10,15 +10,35 @@
 		</div>
 		<!-- eslint-disable-next-line vue/no-v-html -- built by bible/render.js from a whitelist -->
 		<div v-html="popover.html" />
+		<!-- Word scope's "pick an action" counterpart to BookmarkPanel's verse-scope actions --
+			only shown for a word popover (showStrong sets popover.text), not for a footnote/xref
+			one, since those have no single word to act on. -->
+		<div v-if="popover.text" class="phos-popover__actions">
+			<NcButton variant="tertiary" @click="onCopy">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconCopy" />
+				</template>
+				{{ t('phos', 'Copy') }}
+			</NcButton>
+			<NcButton variant="tertiary" @click="$emit('search', popover.text)">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconSearch" />
+				</template>
+				{{ t('phos', 'Search') }}
+			</NcButton>
+		</div>
 	</div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { t } from '@nextcloud/l10n'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { iconCopy, iconSearch } from '../icons.js'
 
 const props = defineProps({ popover: { type: Object, default: null } })
-const emit = defineEmits(['keep', 'ref', 'dict'])
+const emit = defineEmits(['keep', 'ref', 'dict', 'search'])
 
 const title = computed(() => {
 	const p = props.popover
@@ -34,5 +54,9 @@ function onClick(e) {
 		e.preventDefault()
 		emit('dict', a.dataset.module, a.dataset.key)
 	}
+}
+
+function onCopy() {
+	navigator.clipboard?.writeText(props.popover?.text || '')
 }
 </script>
