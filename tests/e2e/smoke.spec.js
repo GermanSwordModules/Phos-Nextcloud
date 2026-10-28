@@ -238,6 +238,23 @@ test('search: Bible on the server, own notes in the browser; a word in “Gehe z
 	await expect(page).toHaveURL(/#\/bible\/.*\/Gen\/1\?v=2/)
 })
 
+test('query builder: the shared web/querybuilder/ bundle, restricted to what server search can run (Phase 3, Scope 4)', async ({ page }) => {
+	await page.goto('/index.php/apps/phos/#/search?m=TINYZ')
+	await page.getByRole('button', { name: 'Baukasten' }).click()
+	const qb = page.frameLocator('.qb-panel__frame')
+	// only the fields this server's search index actually executes are offered
+	await expect(qb.locator('#palette .chip')).toHaveCount(4)
+	await expect(qb.locator('#palette .chip')).toHaveText(['Wort', 'Wortanfang', 'Strong', 'Phrase'])
+	// no proximity/OR ops, no inline scope -- this host's search takes book-scope as its own param
+	await expect(qb.locator('#foot input.scope')).toHaveCount(0)
+	await qb.locator('#palette .chip').getByText('Wort', { exact: true }).click()
+	await qb.locator('.block input').fill('god')
+	await expect(page.getByRole('button', { name: 'Suche', exact: true })).toBeEnabled()
+	await page.getByRole('button', { name: 'Suche', exact: true }).click()
+	await expect(page).toHaveURL(/#\/search\?.*q=god/)
+	await expect(page.locator('.search__count')).toHaveText('4 Verse')
+})
+
 test('continue reading: the desktop’s workspace on the start page; book positions both ways', async ({ page, request }) => {
 	await desktopPush(request, {
 		type: 'workspace', key: 'ws:7d1c0b6a2f9e4c1d8b3a5e6f7a8b9c0d',

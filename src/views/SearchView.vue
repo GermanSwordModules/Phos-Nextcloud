@@ -21,6 +21,9 @@
 					trailing-button-icon="arrowEnd"
 					@trailing-button-click="submit" />
 			</form>
+			<NcButton v-if="tab === 'bible'" @click="showBuilder = !showBuilder">
+				{{ t('phos', 'Builder') }}
+			</NcButton>
 			<NcSelect v-if="tab === 'bible'"
 				v-model="moduleSel"
 				class="search__module"
@@ -39,6 +42,10 @@
 				{{ t('phos', 'One word is enough') }}
 			</NcCheckboxRadioSwitch>
 		</div>
+
+		<QueryBuilderPanel v-if="showBuilder && tab === 'bible'"
+			@close="showBuilder = false"
+			@run="onBuilderRun" />
 
 		<!-- Bible / commentary: on the server -->
 		<template v-if="tab === 'bible'">
@@ -105,6 +112,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import QueryBuilderPanel from '../components/QueryBuilderPanel.vue'
 import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef } from '../bible/books.js'
 import { highlight } from '../search/highlight.js'
@@ -144,6 +152,13 @@ function setQuery(changes) {
 }
 function submit() {
 	setQuery({ q: input.value.trim() })
+}
+
+const showBuilder = ref(false)
+function onBuilderRun(pql) {
+	input.value = pql
+	showBuilder.value = false
+	submit()
 }
 
 // ---------- Bible / commentary ----------

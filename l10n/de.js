@@ -106,7 +106,20 @@ OC.L10N.register(
         "Old Testament": "Altes Testament",
         "New Testament": "Neues Testament",
         "One word is enough": "Ein Wort genügt",
+        "Builder": "Baukasten",
+        "Query builder": "Baukasten",
+        "Close": "Schließen",
         "Search failed": "Suche fehlgeschlagen",
+        "Facts": "Fakten",
+        "Topic": "Thema",
+        "e.g. “prayer”, “David”, “forgiveness”": "z. B. „Gebet“, „David“, „Vergebung“",
+        "Pick a topic": "Thema auswählen",
+        "Type above, or open Facts from a word or verse elsewhere in Phos.": "Oben eingeben, oder Fakten zu einem Wort oder Vers an anderer Stelle in Phos öffnen.",
+        "This isn’t available on the web yet.": "Das ist im Web noch nicht verfügbar.",
+        "Copy": "Kopieren",
+        "Has a saved syntax diagram": "Hat ein gespeichertes Satzdiagramm",
+        "Syntax diagram": "Satzdiagramm",
+        "Saved from the desktop app -- read-only here.": "Gespeichert in der Desktop-App – hier nur lesbar.",
         "The first search in a module builds its index; this takes a few seconds.": "Die erste Suche in einem Modul legt seinen Index an; das dauert einige Sekunden.",
         "This query cannot be searched: {error}": "Diese Anfrage lässt sich nicht suchen: {error}",
         "_%n verse_::_%n verses_": [
@@ -322,9 +335,6 @@ OC.L10N.register(
         "Previous page": "Vorige Seite",
         "Next page": "Nächste Seite",
         "Download": "Herunterladen",
-        "This e-book could not be opened: {error}": "Dieses E-Book ließ sich nicht öffnen: {error}",
-        "Has a saved syntax diagram": "Hat ein gespeichertes Satzdiagramm",
-        "Syntax diagram": "Satzdiagramm",
-        "Saved from the desktop app -- read-only here.": "Gespeichert in der Desktop-App – hier nur lesbar."
+        "This e-book could not be opened: {error}": "Dieses E-Book ließ sich nicht öffnen: {error}"
     },
 "nplurals=2; plural=(n != 1);");

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Query Builder</title>
+<link rel="stylesheet" href="qb.css">
+</head>
+<body>
+<!-- The host fills this by writing `window.PHOS_QB = {...}` into the document before it loads
+     (desktop itself never uses this file -- it builds the same markup inline, see
+     unit_querybuilder.pas TQueryBuilderFrame.LoadQuery; this standalone page is for hosts that
+     load a static file/URL instead, per docs/shareable-tool-bundles.md). Pass `caps` in the
+     payload to restrict the palette to what that host's search backend can actually execute --
+     see the comment at the top of qb.js. -->
+<div id="qb"><div id="palette"></div><div id="main"><div id="canvas"></div>
+<div id="foot"></div></div></div><div id="morph"></div>
+<script src="qb.js"></script>
+<script>
+  if (window.PHOS_QB) PhosQB.load(window.PHOS_QB);
+</script>
+</body>
+</html>

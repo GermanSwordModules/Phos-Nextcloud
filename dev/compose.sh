@@ -44,7 +44,8 @@ case "$1" in
          python3 -I "$APP_DIR/tests/integration/notifications.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/reader.py" http://127.0.0.1:$PORT admin phos-dev-pw
          python3 -I "$APP_DIR/tests/integration/facts.py" http://127.0.0.1:$PORT admin phos-dev-pw
-         python3 -I "$APP_DIR/tests/integration/syntax.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
+         python3 -I "$APP_DIR/tests/integration/syntax.py" http://127.0.0.1:$PORT admin phos-dev-pw
+         python3 -I "$APP_DIR/tests/integration/qb.py" http://127.0.0.1:$PORT admin phos-dev-pw ;;
   web)   cd "$APP_DIR" && npm run build >/dev/null && npm test
          PHOS_URL=http://127.0.0.1:$PORT node --test tests/web/engine.live.test.js
          PHOS_URL=http://127.0.0.1:$PORT npm run smoke ;;

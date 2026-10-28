@@ -115,7 +115,25 @@ DE = {
     'Old Testament': 'Altes Testament',
     'New Testament': 'Neues Testament',
     'One word is enough': 'Ein Wort genügt',
+    # Phase 3 Scope 4: query builder
+    'Builder': 'Baukasten',
+    'Query builder': 'Baukasten',
+    'Close': 'Schließen',
     'Search failed': 'Suche fehlgeschlagen',
+    # Facts (added to l10n/*.json by hand, never added here -- restoring so this generator
+    # stays the source of truth instead of dropping them on the next run)
+    'Facts': 'Fakten',
+    'Topic': 'Thema',
+    'e.g. “prayer”, “David”, “forgiveness”': 'z. B. „Gebet“, „David“, „Vergebung“',
+    'Pick a topic': 'Thema auswählen',
+    'Type above, or open Facts from a word or verse elsewhere in Phos.':
+        'Oben eingeben, oder Fakten zu einem Wort oder Vers an anderer Stelle in Phos öffnen.',
+    'This isn’t available on the web yet.': 'Das ist im Web noch nicht verfügbar.',
+    'Copy': 'Kopieren',
+    # Syntax diagram (same drift as Facts above)
+    'Has a saved syntax diagram': 'Hat ein gespeichertes Satzdiagramm',
+    'Syntax diagram': 'Satzdiagramm',
+    'Saved from the desktop app -- read-only here.': 'Gespeichert in der Desktop-App – hier nur lesbar.',
     'The first search in a module builds its index; this takes a few seconds.': 'Die erste Suche in einem Modul legt seinen Index an; das dauert einige Sekunden.',
     'This query cannot be searched: {error}': 'Diese Anfrage lässt sich nicht suchen: {error}',
     ('%n verse', '%n verses'): ['%n Vers', '%n Verse'],

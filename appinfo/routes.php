@@ -16,6 +16,9 @@ return [
 		// the shared web/syntax/ bundle (Phase 3, Scope 3), the app's own static asset; the
 		// diagram data itself is just a regular 'syntaxDiagram' record, read via /api/v1/changes
 		['name' => 'syntax_asset#get', 'url' => '/syntax-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
+		// the shared web/querybuilder/ bundle (Phase 3, Scope 4), the app's own static asset; the
+		// builder only emits a PQL-subset query string, run via the existing reader#search route
+		['name' => 'qb_asset#get', 'url' => '/qb-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
 	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
