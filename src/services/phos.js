@@ -31,6 +31,36 @@ export const prefs = {
 	set: (k, v) => storage.set('pref.' + k, JSON.stringify(v)),
 }
 
+// ---------- Bible display options ----------
+
+/**
+ * One toggle-state object for the Bible/commentary reader, mirroring the
+ * desktop's `DISP_TOGGLES` (unit_child.pas): a single shared table feeding
+ * every UI that shows these switches (today: BibleViewOptions.vue), instead
+ * of each toggle inventing its own ad hoc pref key.
+ */
+export const displayOptions = reactive({
+	strongs: false,      // show the Strong's number after a tagged word (desktop: "Strong's Numbers", also off by default)
+	notes: true,         // show footnote/cross-reference markers (desktop: dtFnCol/dtXrefCol, simple mode)
+	headings: true,      // show the module's own section headings (desktop: dtNativeHeadings)
+	redLetter: true,     // color words of Jesus -- a web-only extra, desktop has no such feature
+	chapterNum: false,   // big chapter number in the margin at the chapter's first verse (desktop: dtChapNum)
+	sideNotes: false,    // footnotes/xrefs as right-margin notes instead of inline markers (desktop: dtSideNotes)
+	...prefs.get('displayOptions', {}),
+})
+
+export function setDisplayOption(key, value) {
+	displayOptions[key] = value
+	prefs.set('displayOptions', { ...displayOptions })
+}
+
+/** Content zoom, 70-200% (desktop: Cfg.ContentZoom). */
+export const textZoom = ref(prefs.get('textZoom', 100))
+export function setTextZoom(pct) {
+	textZoom.value = Math.max(70, Math.min(200, Math.round(pct / 10) * 10))
+	prefs.set('textZoom', textZoom.value)
+}
+
 let started = null
 export function start() {
 	started ??= engine.start(appVersion).catch(e => { started = null; throw e })

@@ -74,7 +74,7 @@ if not args.password:   # an existing user keeps their password
 rv.call("GET", "/apps/phos/api/v1/status", user, pw)
 hlc = "1791200000000-0000-bbbbbbbbbbbbbbbb"
 changes = []
-confs = [] if args.password else [(FIX, c) for c in ("tinyz.conf", "tinysyn.conf", "tinyplan.conf", "tinylex_zld.conf", "tinybook.conf", "tinymap.conf")]
+confs = [] if args.password else [(FIX, c) for c in ("tinyz.conf", "tinyraw.conf", "tinysyn.conf", "tinyplan.conf", "tinylex_zld.conf", "tinybook.conf", "tinymap.conf")]
 if args.sword:
     want = {m.strip().lower() for m in args.modules.split(",") if m.strip()}
     for c in sorted(os.listdir(os.path.join(args.sword, "mods.d"))):

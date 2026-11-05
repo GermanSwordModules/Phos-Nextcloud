@@ -9,9 +9,10 @@
 				:input-label="isCommentary ? t('phos', 'Commentary') : t('phos', 'Bible')"
 				label="label" />
 			<NcSelect v-model="parallelSel"
-				class="bible__module"
+				class="bible__module bible__module--parallel"
 				:options="parallelOptions"
 				:selectable="o => !o.locked"
+				multiple
 				:input-label="t('phos', 'Parallel text')"
 				:placeholder="t('phos', 'none')"
 				label="label" />
@@ -25,6 +26,11 @@
 			</form>
 		</div>
 		<div v-if="book" class="bible__nav">
+			<NcButton variant="tertiary" class="bible__histnav" :aria-label="t('phos', 'Back')" @click="router.back()">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconHistBack" />
+				</template>
+			</NcButton>
 			<NcButton variant="tertiary" :disabled="!prevChapter" :aria-label="t('phos', 'Previous chapter')" @click="go(prevChapter)">
 				<template #icon>
 					<NcIconSvgWrapper :path="iconPrev" />
@@ -41,15 +47,24 @@
 				:options="chapterOptions"
 				:clearable="false"
 				:aria-label-combobox="t('phos', 'Chapter')" />
+			<NcButton variant="tertiary" :aria-label="t('phos', 'Go to a verse …')" @click="versePickerOpen = true">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconVerseGrid" />
+				</template>
+			</NcButton>
 			<NcButton variant="tertiary" :disabled="!nextChapter" :aria-label="t('phos', 'Next chapter')" @click="go(nextChapter)">
 				<template #icon>
 					<NcIconSvgWrapper :path="iconNext" />
 				</template>
 			</NcButton>
-			<NcCheckboxRadioSwitch v-model="versePerLine" type="switch" class="bible__vpl" :title="t('phos', 'Verse per line')">
-				{{ t('phos', 'Verse per line') }}
-			</NcCheckboxRadioSwitch>
+			<NcButton variant="tertiary" class="bible__histnav" :aria-label="t('phos', 'Forward')" @click="router.forward()">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconHistForward" />
+				</template>
+			</NcButton>
+			<BibleViewOptions v-model:verse-per-line="versePerLine" class="bible__viewopts" @print="printView" />
 		</div>
+		<VersePicker v-model:open="versePickerOpen" :books="books" :book="book" :chapter="chapter" @go="go" />
 
 		<NcEmptyContent v-if="!ownModules.length"
 			:name="isCommentary ? t('phos', 'No commentary on the server yet.') : t('phos', 'No Bible on the server yet')"
@@ -61,9 +76,18 @@
 		<div v-else
 			ref="textEl"
 			class="bible__text phos-text"
-			:class="{ 'bible__text--parallel': columns.length > 1, 'bible__text--flow': !versePerLine && columns.length === 1 }"
+			:class="{
+				'bible__text--parallel': columns.length > 1,
+				'bible__text--flow': !versePerLine && columns.length === 1,
+				'opts-strongs': displayOptions.strongs,
+				'opts-hide-notes': !displayOptions.notes,
+				'opts-hide-headings': !displayOptions.headings,
+				'opts-no-redletter': !displayOptions.redLetter,
+				'opts-sidenotes': displayOptions.notes && displayOptions.sideNotes,
+				'opts-chapternum': displayOptions.chapterNum,
+			}"
 			:dir="columns.length === 1 && columns[0].rtl ? 'rtl' : null"
-			:style="{ '--cols': columns.length }"
+			:style="{ '--cols': columns.length, '--phos-zoom': textZoom / 100 }"
 			@click="onTextClick"
 			@mouseover="onHover">
 			<div v-if="columns.length > 1" class="bible__row bible__row--head">
@@ -72,16 +96,17 @@
 				</div>
 			</div>
 			<div v-if="hasIntro" class="bible__row">
-				<div v-for="c in columns" :key="c.module" class="bible__cell" :dir="c.rtl ? 'rtl' : null">
+				<div v-for="c in columns" :key="c.module" class="bible__cell" :data-mod="c.module" :dir="c.rtl ? 'rtl' : null">
 					<div v-for="(h, i) in c.intro" :key="i" class="phos-heading phos-heading--intro" v-html="h" />
 				</div>
 			</div>
 			<div v-for="v in verseNumbers"
 				:key="v"
 				:data-v="v"
+				:data-chapternum="v === verseNumbers[0] ? chapter : null"
 				class="bible__row"
-				:class="{ 'bible__row--selected': inSelection(v) }">
-				<div v-for="c in columns" :key="c.module" class="bible__cell" :dir="c.rtl ? 'rtl' : null">
+				:class="{ 'bible__row--selected': inSelection(v), 'bible__row--first': v === verseNumbers[0] }">
+				<div v-for="c in columns" :key="c.module" class="bible__cell" :data-mod="c.module" :dir="c.rtl ? 'rtl' : null">
 					<div v-for="(h, i) in c.verses[v]?.headings || []" :key="i" class="phos-heading" v-html="h" />
 					<span class="bible__verse" :style="verseStyle(v)">
 						<button type="button"
@@ -106,6 +131,13 @@
 							<NcIconSvgWrapper :path="iconSyntax" :size="14" />
 						</button>
 					</span>
+					<div v-if="displayOptions.sideNotes && displayOptions.notes && c.verses[v]?.noteIds?.length" class="bible__sidenotes">
+						<div v-for="id in c.verses[v].noteIds" :key="id" class="bible__sidenote">
+							<b>{{ notes.get(id)?.label }}</b>
+							<!-- eslint-disable-next-line vue/no-v-html -- built by bible/render.js from a whitelist -->
+							<span v-html="notes.get(id)?.html" />
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -147,17 +179,19 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcAppSidebar from '@nextcloud/vue/components/NcAppSidebar'
-import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import TextPopover from '../components/TextPopover.vue'
 import BookmarkPanel from '../components/BookmarkPanel.vue'
+import BibleViewOptions from '../components/BibleViewOptions.vue'
+import VersePicker from '../components/VersePicker.vue'
 import { useTextPopover } from '../components/useNotes.js'
 import { render } from '../bible/render.js'
 import { bookName, formatRef, parseRef, registerBookName } from '../bible/books.js'
 import {
 	bibles, commentaries, modules, getBooks, getChapter, getEntry, defaultBible, defaultCommentary, prefs, lang,
-	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions, syntaxDiagramFor } from '../services/phos.js'
+	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions, syntaxDiagramFor,
+	displayOptions, textZoom } from '../services/phos.js'
 import SyntaxDiagramPanel from '../components/SyntaxDiagramPanel.vue'
-import { iconPrev, iconNext, iconSyntax } from '../icons.js'
+import { iconPrev, iconNext, iconSyntax, iconHistBack, iconHistForward, iconVerseGrid } from '../icons.js'
 
 /**
  * The Bible text, standalone (route `bible`) or as the left half of the
@@ -176,7 +210,9 @@ const ownModules = computed(() => isCommentary.value ? commentaries.value : bibl
 const moduleName = computed(() => route.params.module || (isCommentary.value ? defaultCommentary() : defaultBible()))
 const book = computed(() => route.params.book || null)
 const chapter = computed(() => Number(route.params.chapter) || 1)
-const parallelName = computed(() => route.query.p || '')
+// N-version parallel (desktop: unlimited columns via GroupID/ArrangeTiles) -- comma-separated in ?p=
+const parallelNames = computed(() => String(route.query.p || '').split(',').filter(Boolean))
+const versePickerOpen = ref(false)
 
 const books = ref([])           // books of the main module
 const columns = ref([])         // [{ module, rtl, intro: [html], verses: {v: {html, headings, linkedTo}} }]
@@ -195,7 +231,7 @@ const option = m => ({
 	id: m.name, label: m.locked ? `🔒 ${m.name} – ${m.description}` : `${m.name} – ${m.description}`, locked: m.locked,
 })
 const bibleOptions = computed(() => [...ownModules.value.map(option), ...localOnlyOptions(isCommentary.value ? 'commentary' : 'bible')])
-// a Bible next to a commentary, or a commentary as a column next to the Bible
+// a Bible next to a commentary, or a commentary (or several) as columns next to the Bible
 const parallelOptions = computed(() => [...bibles.value, ...commentaries.value].map(option)
 	.concat(localOnlyOptions('bible'), localOnlyOptions('commentary')))
 const moduleSel = computed({
@@ -203,8 +239,8 @@ const moduleSel = computed({
 	set: o => { if (o) { prefs.set(isCommentary.value ? 'commentary' : 'bible', o.id); go({ module: o.id }) } },
 })
 const parallelSel = computed({
-	get: () => parallelOptions.value.find(o => o.id === parallelName.value) || null,
-	set: o => go({ p: o?.id || '' }),
+	get: () => parallelNames.value.map(n => parallelOptions.value.find(o => o.id === n)).filter(Boolean),
+	set: arr => go({ p: (arr || []).map(o => o.id) }),
 })
 const bookOptions = computed(() => books.value.map(b => ({ id: b.osis, label: bookName(b.osis, lang, b.name) })))
 const bookSel = computed({
@@ -251,10 +287,11 @@ const selectionLabel = computed(() => selection.value
 // a selection belongs to one chapter
 watch(() => [moduleName.value, book.value, chapter.value], () => { selection.value = null })
 
-function go({ module = moduleName.value, book: b = book.value, chapter: c = chapter.value, v = undefined, p = parallelName.value } = {}) {
+function go({ module = moduleName.value, book: b = book.value, chapter: c = chapter.value, v = undefined, p = parallelNames.value } = {}) {
 	const query = {}
-	if (p) {
-		query.p = p
+	const pStr = (Array.isArray(p) ? p : [p]).filter(Boolean).join(',')
+	if (pStr) {
+		query.p = pStr
 	}
 	if (v) {
 		query.v = v
@@ -262,6 +299,10 @@ function go({ module = moduleName.value, book: b = book.value, chapter: c = chap
 	selection.value = null
 	pop.close()
 	router.push({ name: routeName.value, params: { module, book: b, chapter: c }, query })
+}
+
+function printView() {
+	window.print()
 }
 
 // ---------- loading ----------
@@ -302,7 +343,7 @@ async function load() {
 			router.replace({ name: routeName.value, params: { module: moduleName.value, book: start.osis, chapter: c }, query })
 			return
 		}
-		const names = [moduleName.value, parallelName.value].filter(Boolean)
+		const names = [...new Set([moduleName.value, ...parallelNames.value])].filter(Boolean)
 		// the parallel text follows the main module's verse numbering (sword's mapping tables)
 		const system = info.versification
 		const cols = await Promise.all(names.map(async name => {
@@ -381,11 +422,16 @@ function column(name, meta, ch) {
 		if (ch.refs?.[v]) {
 			verses[v].from = osisLabel(ch.refs[v])
 		}
+		// which notes this verse's html carries (side-notes mode shows them next to it)
+		const ids = [...verses[v].html.matchAll(/data-note="([^"]+)"/g)].map(m => m[1])
+		if (ids.length) {
+			verses[v].noteIds = ids
+		}
 	}
 	return { module: name, rtl: meta?.direction === 'RtoL', intro, verses }
 }
 
-watch(() => [moduleName.value, book.value, chapter.value, parallelName.value, route.query.v, route.query.at, modules.value.length], load, { immediate: true })
+watch(() => [moduleName.value, book.value, chapter.value, parallelNames.value.join(','), route.query.v, route.query.at, modules.value.length], load, { immediate: true })
 
 // ---------- bookmarks in this chapter ----------
 
@@ -417,6 +463,25 @@ function inSelection(v) {
 
 // ---------- interaction ----------
 
+/**
+ * Click-to-open popovers, one entry per kind of marker the renderer tags --
+ * the web analogue of desktop's single scheme-dispatcher
+ * (`TForm1.BuildPreviewHTML`, unit1.pas:4050, for strong:/bible:/fn:/geo:/
+ * person:/pericope:/bmclick:). Only notes and Strong's words exist today;
+ * a future geo/person marker is one more entry here, not a new if-chain.
+ */
+const POPOVER_HANDLERS = [
+	{
+		selector: '[data-note]',
+		open: el => { const note = notes.get(el.dataset.note); if (note) { pop.showNote(el, note) } },
+	},
+	{
+		selector: '.phos-w',
+		test: el => !!el.dataset.lemma,
+		open: el => pop.showStrong(el, el.dataset.lemma).then(() => { if (pop.popover.value) { pop.popover.value.pinned = true } }),
+	},
+]
+
 function onTextClick(e) {
 	const verseBtn = e.target.closest('[data-verse]')
 	if (verseBtn) {
@@ -428,24 +493,18 @@ function onTextClick(e) {
 		}
 		return
 	}
-	const noteEl = e.target.closest('[data-note]')
-	if (noteEl) {
-		const note = notes.get(noteEl.dataset.note)
-		if (note) {
-			pop.showNote(noteEl, note)
-		}
-		return
-	}
 	const a = e.target.closest('a[data-ref]')
 	if (a) {
 		e.preventDefault()
 		gotoRef(a.dataset.ref)
 		return
 	}
-	const w = e.target.closest('.phos-w')
-	if (w?.dataset.lemma) {
-		pop.showStrong(w, w.dataset.lemma).then(() => { if (pop.popover.value) pop.popover.value.pinned = true })
-		return
+	for (const h of POPOVER_HANDLERS) {
+		const el = e.target.closest(h.selector)
+		if (el && (!h.test || h.test(el))) {
+			h.open(el)
+			return
+		}
 	}
 	pop.close()
 }
@@ -611,8 +670,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 		min-width: 90px;
 	}
 
-	&__vpl {
+	&__viewopts {
 		margin-left: auto;
+	}
+
+	&__module--parallel {
+		min-width: 280px;
+		max-width: 460px;
 	}
 
 	&__loading {
@@ -623,6 +687,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 	&__text {
 		max-width: 900px;
+		font-size: calc(var(--phos-text-size) * var(--phos-zoom, 1));
 
 		&--parallel {
 			max-width: none;
@@ -635,6 +700,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 		gap: 0 24px;
 		padding: 1px 4px;
 		border-radius: var(--border-radius);
+		position: relative;
 
 		&--head {
 			position: sticky;
@@ -648,6 +714,33 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 		&--selected {
 			background: var(--color-primary-element-light);
 		}
+	}
+
+	/* desktop: dtChapNum -- a big chapter number floated into the left margin
+	   at the chapter's first verse. No effect without that margin (mobile). */
+	&__text.opts-chapternum &__row--first::before {
+		content: attr(data-chapternum);
+		position: absolute;
+		left: -46px;
+		top: -0.05em;
+		font-size: 2.1em;
+		font-weight: bold;
+		line-height: 1;
+		color: var(--color-text-maxcontrast);
+	}
+
+	&__sidenotes {
+		margin: 2px 0 2px 8px;
+		padding-inline-start: 8px;
+		border-inline-start: 2px solid var(--color-border);
+		font-size: 0.78em;
+		color: var(--color-text-maxcontrast);
+		float: right;
+		width: 200px;
+	}
+
+	&__sidenote + &__sidenote {
+		margin-top: 4px;
 	}
 
 	&__text--flow {
@@ -766,8 +859,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 			flex: 0 0 auto;
 		}
 
-		/* the switch keeps only its knob; its label is the tooltip */
-		&__vpl :deep(.checkbox-content__text) {
+		/* the browser's own back/forward gesture covers this on a phone */
+		&__histnav {
 			display: none;
 		}
 
@@ -779,11 +872,30 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 			}
 		}
 
+		/* no left margin to float a big chapter number into */
+		&__text.opts-chapternum &__row--first::before {
+			display: none;
+		}
+
 		&__text--parallel &__cell + &__cell {
 			margin: 2px 0 6px;
 			padding-inline-start: 8px;
 			border-inline-start: 3px solid var(--color-border-dark);
 			color: var(--color-text-maxcontrast);
+
+			&::before {
+				content: attr(data-mod);
+				display: block;
+				font-weight: bold;
+				font-size: 0.78em;
+				color: var(--color-text-maxcontrast);
+			}
+		}
+
+		&__sidenotes {
+			float: none;
+			width: auto;
+			margin: 2px 0 6px 8px;
 		}
 	}
 }

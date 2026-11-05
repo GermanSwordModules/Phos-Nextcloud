@@ -41,4 +41,13 @@ export {
 	mdiLightbulbOutline as iconFacts,
 	mdiContentCopy as iconCopy,
 	mdiFamilyTree as iconSyntax,
+	mdiTuneVariant as iconViewOptions,
+	mdiPrinterOutline as iconPrint,
+	mdiArrowLeftBoldOutline as iconHistBack,
+	mdiArrowRightBoldOutline as iconHistForward,
+	mdiMagnifyPlusOutline as iconZoomIn,
+	mdiMagnifyMinusOutline as iconZoomOut,
+	mdiRestore as iconZoomReset,
+	mdiViewGridOutline as iconVerseGrid,
+	mdiPlusBoxMultipleOutline as iconAddColumn,
 } from '@mdi/js'

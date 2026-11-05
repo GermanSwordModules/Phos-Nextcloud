@@ -706,3 +706,125 @@ test('syntax diagram saved on the desktop shows read-only in the sidebar (Phase 
 	await expect(diagramFrame.locator('#view svg text').first()).toContainText('For God')
 	await expect(diagramFrame.locator('#tools')).toHaveCount(0)   // read-only: no drawing toolbar
 })
+
+// ---- desktop look-alike/work-alike roadmap (Tier 1-3 + chrome track) ----
+
+test('view options: Strong\'s, footnotes, headings, red-letter and chapter number toggle on/off', async ({ page }) => {
+	const text = page.locator('.bible__text')
+	const word = text.locator('[data-v="1"] .phos-w').first()
+	await expect(word).toHaveAttribute('data-lemma', 'H07225')
+
+	// the menu (NcActionCheckbox) stays open across clicks -- open it once
+	const menu = page.locator('.bible__viewopts')
+	await menu.locator('button').first().click()
+	const inMenu = (role, name) => page.getByRole('menu').getByRole(role, { name })
+
+	await inMenu('menuitemcheckbox', /Strong's numbers/).click()
+	await expect(text).toHaveClass(/opts-strongs/)
+	// the number is CSS content (::after), not real text -- check via computed style
+	const shown = await word.evaluate(el => getComputedStyle(el, '::after').content)
+	expect(shown).toContain('H07225')
+
+	await inMenu('menuitemcheckbox', 'Footnotes and cross-references').click()
+	await expect(text).toHaveClass(/opts-hide-notes/)
+	await expect(text.locator('[data-v="2"] .phos-note').first()).toBeHidden()
+
+	await inMenu('menuitemcheckbox', 'Headings').click()
+	await expect(text).toHaveClass(/opts-hide-headings/)
+	await expect(text.locator('.phos-heading').first()).toBeHidden()
+
+	await inMenu('menuitemcheckbox', 'Words of Jesus in red').click()
+	await expect(text).toHaveClass(/opts-no-redletter/)
+
+	await inMenu('menuitemcheckbox', 'Chapter number in the margin').click()
+	await expect(text).toHaveClass(/opts-chapternum/)
+	await expect(text.locator('.bible__row--first')).toHaveAttribute('data-chapternum', '1')
+})
+
+test('view options: larger/smaller text persists the zoom level', async ({ page }) => {
+	const menu = page.locator('.bible__viewopts')
+	await menu.locator('button').first().click()
+	await page.getByRole('menuitem', { name: 'Larger text' }).click()
+	await page.getByRole('menuitem', { name: 'Larger text' }).click()
+	await expect(page.locator('.bible__text')).toHaveCSS('--phos-zoom', '1.2')
+	await page.reload()
+	await expect(page.locator('.bible__text')).toHaveCSS('--phos-zoom', '1.2')
+})
+
+test('N-version parallel: three Bibles side by side, all three navigate together', async ({ page }) => {
+	await page.locator('.bible__module--parallel .vs__dropdown-toggle').click()
+	await page.locator('.vs__dropdown-option', { hasText: 'TINYSYN' }).click()
+	await page.locator('.bible__module--parallel .vs__dropdown-toggle').click()
+	await page.locator('.vs__dropdown-option', { hasText: 'TINYRAW' }).first().click()
+	const heads = page.locator('.bible__colhead')
+	await expect(heads).toHaveCount(3)
+	await expect(heads.nth(0)).toContainText('TINYZ')
+	await expect(heads.nth(1)).toContainText('TINYSYN')
+	await expect(heads.nth(2)).toContainText('TINYRAW')
+	await expect(page.locator('[data-v="1"] .bible__cell')).toHaveCount(3)
+	await expect(page.locator('[data-v="1"] .bible__cell').nth(2)).toContainText('In the beginning')
+	// the choice survives a reload (it is in the URL)
+	await expect(page).toHaveURL(/p=TINYSYN%2CTINYRAW|p=TINYSYN,TINYRAW/)
+	await page.reload()
+	await expect(page.locator('.bible__colhead')).toHaveCount(3)
+	// navigating the main column carries all three along (shared route state)
+	await page.locator('.bible__nav').getByRole('button', { name: 'Nächstes Kapitel' }).click()
+	await expect(page.locator('.bible__colhead')).toHaveCount(3)
+	await expect(page.locator('[data-v="1"] .bible__cell')).toHaveCount(3)
+})
+
+test('verse picker: book, then chapter, then verse grid jumps there', async ({ page }) => {
+	await page.getByRole('button', { name: 'Go to a verse …' }).click()
+	const dialog = page.getByRole('dialog')
+	// opened from Gen 1: it is a shortcut, so it starts at this book's chapters
+	await expect(dialog).toContainText('Go to a chapter of Genesis')
+	await dialog.locator('.versepicker__crumb button').first().click()
+	await expect(dialog).toContainText('Go to a book')
+	await dialog.getByRole('button', { name: 'Johannes', exact: true }).click()
+	await expect(dialog).toContainText('Go to a chapter of Johannes')
+	await dialog.getByRole('button', { name: '3', exact: true }).click()
+	await expect(dialog).toContainText('Go to a verse of Johannes 3')
+	await dialog.getByRole('button', { name: '16', exact: true }).click()
+	await expect(page.locator('.bible__text [data-v="16"]')).toHaveClass(/bible__row--selected/)
+	await expect(page).toHaveURL(/#\/bible\/TINYZ\/John\/3/)
+})
+
+test('history back/forward buttons retrace chapter navigation', async ({ page }) => {
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Gen/1')
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Gen/2')
+	await expect(page).toHaveURL(/Gen\/2/)
+	await page.getByRole('button', { name: 'Back' }).click()
+	await expect(page).toHaveURL(/Gen\/1/)
+	await page.getByRole('button', { name: 'Forward' }).click()
+	await expect(page).toHaveURL(/Gen\/2/)
+})
+
+test('export as PDF calls the browser print dialog', async ({ page }) => {
+	let printed = false
+	await page.exposeFunction('__printed', () => { printed = true })
+	await page.evaluate(() => { window.print = () => window.__printed() })
+	await page.locator('.bible__viewopts button').first().click()
+	await page.getByRole('menuitem', { name: 'Export as PDF …' }).click()
+	await expect.poll(() => printed).toBe(true)
+})
+
+test('footnotes in the margin: the note text itself appears beside the verse, not just a marker', async ({ page }) => {
+	const text = page.locator('.bible__text')
+	const menu = page.locator('.bible__viewopts')
+	await menu.locator('button').first().click()
+	await page.getByRole('menu').getByRole('menuitemcheckbox', { name: 'Footnotes in the margin' }).click()
+	await expect(text).toHaveClass(/opts-sidenotes/)
+	const side = text.locator('[data-v="2"] .bible__sidenotes')
+	await expect(side).toBeVisible()
+	await expect(side).toContainText('upon the face of the deep')
+})
+
+test('navigation sidebar is grouped into sections (desktop: sectioned toolbar)', async ({ page }) => {
+	const groups = ['Bible & study', 'My own', 'Präsentation', 'Nextcloud sync']
+	for (const g of groups) {
+		await expect(page.locator('.app-navigation-caption__name', { hasText: g })).toBeVisible()
+	}
+	// a route from each group is still reachable
+	await expect(page.getByRole('link', { name: 'Studienpads' })).toBeVisible()
+	await expect(page.getByRole('link', { name: 'Geräte' })).toBeVisible()
+})

@@ -2,17 +2,20 @@
 	<NcContent app-name="phos">
 		<NcAppNavigation v-if="!route.meta.bare" :aria-label="t('phos', 'Phos navigation')">
 			<template #list>
-				<NcAppNavigationItem v-for="item in nav"
-					:key="item.to"
-					:name="item.name"
-					:to="item.to">
-					<template #icon>
-						<NcIconSvgWrapper :path="item.icon" />
-					</template>
-					<template v-if="item.count" #counter>
-						<NcCounterBubble :count="item.count" :type="item.highlight ? 'highlighted' : ''" />
-					</template>
-				</NcAppNavigationItem>
+				<template v-for="group in navGroups" :key="group.name">
+					<NcAppNavigationCaption :name="group.name" />
+					<NcAppNavigationItem v-for="item in group.items"
+						:key="item.to"
+						:name="item.name"
+						:to="item.to">
+						<template #icon>
+							<NcIconSvgWrapper :path="item.icon" />
+						</template>
+						<template v-if="item.count" #counter>
+							<NcCounterBubble :count="item.count" :type="item.highlight ? 'highlighted' : ''" />
+						</template>
+					</NcAppNavigationItem>
+				</template>
 			</template>
 			<template #footer>
 				<div class="phos-syncstate" :class="{ 'phos-syncstate--off': !state.online }">
@@ -41,6 +44,7 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { t, n } from '@nextcloud/l10n'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
+import NcAppNavigationCaption from '@nextcloud/vue/components/NcAppNavigationCaption'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -58,24 +62,47 @@ const iconSync = I.iconSync
 const iconOffline = I.iconOffline
 const startError = ref('')
 
-const nav = computed(() => [
-	{ to: '/read', name: t('phos', 'Bible reading'), icon: I.iconReading },
-	{ to: '/library', name: t('phos', 'Library'), icon: I.iconLibrary },
-	{ to: '/bible', name: t('phos', 'Bible'), icon: I.iconBible },
-	{ to: '/search', name: t('phos', 'Search'), icon: I.iconSearch },
-	{ to: '/bookmarks', name: t('phos', 'Bookmarks'), icon: I.iconBookmarks },
-	{ to: '/notes', name: t('phos', 'Notes'), icon: I.iconNotes },
-	{ to: '/pads', name: t('phos', 'Study pads'), icon: I.iconPads },
-	{ to: '/plan', name: t('phos', 'Reading plan'), icon: I.iconPlan },
-	{ to: '/sermons', name: t('phos', 'Sermons'), icon: I.iconSermon },
-	{ to: '/facts', name: t('phos', 'Facts'), icon: I.iconFacts },
-	{ to: '/projects', name: t('phos', 'Projects'), icon: I.iconProjects },
-	{ to: '/decks', name: t('phos', 'Presentations'), icon: I.iconDecks },
-	{ to: '/remote', name: t('phos', 'Remote'), icon: I.iconRemote },
-	{ to: '/ebooks', name: t('phos', 'E-books'), icon: I.iconEbooks },
-	{ to: '/shared', name: t('phos', 'Shared'), icon: I.iconShared },
-	{ to: '/conflicts', name: t('phos', 'Conflicts'), icon: I.iconConflicts, count: state.conflicts?.length || 0, highlight: true },
-	{ to: '/devices', name: t('phos', 'Devices'), icon: I.iconDevices },
+// grouped the way the desktop's own sectioned toolbar reads (unit_modulechrome.pas's
+// hairline-separated button groups) -- a flat 17-route list read as one undifferentiated
+// block, this doesn't.
+const navGroups = computed(() => [
+	{
+		name: t('phos', 'Bible & study'),
+		items: [
+			{ to: '/read', name: t('phos', 'Bible reading'), icon: I.iconReading },
+			{ to: '/library', name: t('phos', 'Library'), icon: I.iconLibrary },
+			{ to: '/bible', name: t('phos', 'Bible'), icon: I.iconBible },
+			{ to: '/search', name: t('phos', 'Search'), icon: I.iconSearch },
+			{ to: '/facts', name: t('phos', 'Facts'), icon: I.iconFacts },
+		],
+	},
+	{
+		name: t('phos', 'My own'),
+		items: [
+			{ to: '/bookmarks', name: t('phos', 'Bookmarks'), icon: I.iconBookmarks },
+			{ to: '/notes', name: t('phos', 'Notes'), icon: I.iconNotes },
+			{ to: '/pads', name: t('phos', 'Study pads'), icon: I.iconPads },
+			{ to: '/plan', name: t('phos', 'Reading plan'), icon: I.iconPlan },
+			{ to: '/projects', name: t('phos', 'Projects'), icon: I.iconProjects },
+			{ to: '/sermons', name: t('phos', 'Sermons'), icon: I.iconSermon },
+			{ to: '/ebooks', name: t('phos', 'E-books'), icon: I.iconEbooks },
+		],
+	},
+	{
+		name: t('phos', 'Presentation'),
+		items: [
+			{ to: '/decks', name: t('phos', 'Presentations'), icon: I.iconDecks },
+			{ to: '/remote', name: t('phos', 'Remote'), icon: I.iconRemote },
+		],
+	},
+	{
+		name: t('phos', 'Nextcloud sync'),
+		items: [
+			{ to: '/shared', name: t('phos', 'Shared'), icon: I.iconShared },
+			{ to: '/conflicts', name: t('phos', 'Conflicts'), icon: I.iconConflicts, count: state.conflicts?.length || 0, highlight: true },
+			{ to: '/devices', name: t('phos', 'Devices'), icon: I.iconDevices },
+		],
+	},
 ])
 
 const syncText = computed(() => {

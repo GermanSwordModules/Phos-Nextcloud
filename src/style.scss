@@ -73,6 +73,57 @@ body[data-themes*='dark'] #phos {
 	}
 }
 
+/*
+ * Bible display-option toggles (desktop: DISP_TOGGLES, unit_child.pas) --
+ * the elements these rules target (.phos-w/.phos-note/.phos-heading/
+ * .phos-jesus) are produced by bible/render.js and inserted via v-html, so
+ * they never carry a component's scoped-style attribute: these overrides
+ * MUST live here (global), not in BibleView.vue's <style scoped>.
+ */
+.opts-strongs .phos-w[data-lemma]:not([data-lemma=''])::after {
+	content: ' ' attr(data-lemma);
+	font-size: 0.62em;
+	font-weight: normal;
+	vertical-align: super;
+	color: var(--color-text-maxcontrast);
+	margin-inline-start: 1px;
+}
+
+.opts-hide-notes .phos-note {
+	display: none;
+}
+
+.opts-hide-headings .phos-heading {
+	display: none;
+}
+
+.opts-no-redletter .phos-jesus {
+	color: inherit;
+}
+
+/* the note text is already shown beside the verse; de-emphasize the marker */
+.opts-sidenotes .phos-note {
+	opacity: 0.55;
+}
+
+/* desktop just prints whatever is on screen (TBVCHtmlView.PrintToPdf) --
+ * same idea here: hide chrome, keep the rendered text. */
+@media print {
+	.app-navigation,
+	.app-navigation-toggle,
+	#header,
+	.bible__bar,
+	.bible__nav,
+	.phos-syncstate,
+	.app-content-list-item-menu {
+		display: none !important;
+	}
+
+	.phos-text {
+		max-width: none !important;
+	}
+}
+
 .phos-popover {
 	position: fixed;
 	z-index: 10000;
