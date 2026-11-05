@@ -40,6 +40,10 @@ interface RecordStore {
 
 	public function removeMember(string $collection, string $ptype, string $pid): void;
 
+	/** Resolves a public share-link token (a 'link'-type member's pid) to its
+	 *  collection id, or null when the token is unknown/revoked. */
+	public function collectionForToken(string $token): ?string;
+
 	/** True when a live record of the collection has $needle in its payload
 	 *  (the file proxy: is this ".records/…" file part of the collection?) */
 	public function payloadMentions(string $collection, string $needle): bool;

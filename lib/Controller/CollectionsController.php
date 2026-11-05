@@ -154,6 +154,36 @@ class CollectionsController extends OCSController {
 		}
 	}
 
+	/** The collection's public link, if any — separate from the members list
+	 *  (members() filters the link's pseudo-member row out). */
+	#[NoAdminRequired]
+	public function getLink(string $collection): DataResponse {
+		try {
+			return new DataResponse(['token' => $this->collections->linkToken($this->uid(), $collection)]);
+		} catch (\Throwable $e) {
+			return self::fail($e);
+		}
+	}
+
+	#[NoAdminRequired]
+	public function createLink(string $collection): DataResponse {
+		try {
+			return new DataResponse(['token' => $this->collections->ensureLink($this->uid(), $collection)]);
+		} catch (\Throwable $e) {
+			return self::fail($e);
+		}
+	}
+
+	#[NoAdminRequired]
+	public function removeLink(string $collection): DataResponse {
+		try {
+			$this->collections->revokeLink($this->uid(), $collection);
+			return new DataResponse([]);
+		} catch (\Throwable $e) {
+			return self::fail($e);
+		}
+	}
+
 	/** People, groups and teams to share with — Nextcloud's own sharee search. */
 	#[NoAdminRequired]
 	public function sharees(string $search = ''): DataResponse {

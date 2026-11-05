@@ -112,6 +112,20 @@ final class MemoryRecordStore implements RecordStore {
 		unset($this->members[$collection]["$ptype\x00$pid"]);
 	}
 
+	public function collectionForToken(string $token): ?string {
+		if ($token === '') {
+			return null;
+		}
+		foreach ($this->members as $collId => $byKey) {
+			foreach ($byKey as $m) {
+				if ($m['ptype'] === 'link' && $m['pid'] === $token) {
+					return (string)$collId;
+				}
+			}
+		}
+		return null;
+	}
+
 	public function find(string $collection, string $type, string $key): ?Record {
 		$r = $this->records[self::k($collection, $type, $key)] ?? null;
 		return $r === null ? null : clone $r;

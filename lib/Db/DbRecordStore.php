@@ -212,6 +212,20 @@ class DbRecordStore implements RecordStore {
 		}
 	}
 
+	public function collectionForToken(string $token): ?string {
+		if ($token === '') {
+			return null;
+		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('coll')->from('phos_members')
+			->where($qb->expr()->eq('ptype', $qb->createNamedParameter('link')))
+			->andWhere($qb->expr()->eq('pid', $qb->createNamedParameter($token)));
+		$res = $qb->executeQuery();
+		$r = $res->fetch();
+		$res->closeCursor();
+		return $r === false ? null : (string)$r['coll'];
+	}
+
 	public function payloadMentions(string $collection, string $needle): bool {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('id')->from('phos_records')

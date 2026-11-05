@@ -106,6 +106,26 @@
 						{{ t('phos', 'Add') }}
 					</NcButton>
 				</div>
+				<div v-if="c.perm === 'admin'" class="shared__link">
+					<h4>{{ t('phos', 'Public link') }}</h4>
+					<p class="shared__linkhint">
+						{{ t('phos', 'Anyone with this link can read the collection — no Nextcloud account needed. Good for sharing with a congregation that mostly doesn’t have one.') }}
+					</p>
+					<template v-if="link[c.id]">
+						<div class="shared__linkrow">
+							<NcTextField :model-value="linkUrl(link[c.id])" readonly :label="t('phos', 'Link')" />
+							<NcButton @click="copyLink(c)">
+								{{ t('phos', 'Copy') }}
+							</NcButton>
+							<NcButton variant="tertiary" @click="removeLink(c)">
+								{{ t('phos', 'Remove') }}
+							</NcButton>
+						</div>
+					</template>
+					<NcButton v-else @click="createLink(c)">
+						{{ t('phos', 'Create public link') }}
+					</NcButton>
+				</div>
 			</div>
 		</section>
 	</div>
@@ -116,7 +136,8 @@ import { computed, nextTick, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { t, n } from '@nextcloud/l10n'
 import { getCurrentUser } from '@nextcloud/auth'
-import { showError } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
@@ -137,6 +158,7 @@ const route = useRoute()
 const me = getCurrentUser()?.uid
 const collections = ref([])
 const members = reactive({})
+const link = reactive({})
 const loading = ref(true)
 const newName = ref('')
 const sharees = ref([])
@@ -173,6 +195,13 @@ async function load() {
 				members[c.id] = (await http.get(`/collections/${c.id}/members`)).members
 			} catch {
 				members[c.id] = []
+			}
+			if (c.perm === 'admin') {
+				try {
+					link[c.id] = (await http.get(`/collections/${c.id}/link`)).token
+				} catch {
+					link[c.id] = null
+				}
 			}
 			pickPerm[c.id] ??= 'read'
 		}))
@@ -212,6 +241,24 @@ const addMember = c => act(async () => {
 	await http.post(`/collections/${c.id}/members`, { type: pick[c.id].type, id: pick[c.id].id, perm: pickPerm[c.id] })
 	pick[c.id] = null
 })
+
+const linkUrl = token => generateUrl('/apps/phos/s/') + encodeURIComponent(token)
+const createLink = c => act(async () => {
+	link[c.id] = (await http.post(`/collections/${c.id}/link`, {})).token
+})
+const removeLink = c => confirm(t('phos', 'Remove the public link? Anyone who still has it loses access.'))
+	&& act(async () => {
+		await http.del(`/collections/${c.id}/link`)
+		link[c.id] = null
+	})
+async function copyLink(c) {
+	try {
+		await navigator.clipboard.writeText(linkUrl(link[c.id]))
+		showSuccess(t('phos', 'Link copied'))
+	} catch (e) {
+		showError(e.message)
+	}
+}
 
 let searchTimer = null
 function search(q) {
@@ -327,6 +374,36 @@ load()
 
 	&__mname {
 		min-width: 180px;
+	}
+
+	&__link {
+		margin-top: 12px;
+		border-top: 1px solid var(--color-border);
+		padding-top: 10px;
+	}
+
+	&__link h4 {
+		font-weight: bold;
+		margin: 0;
+		color: var(--color-text-maxcontrast);
+	}
+
+	&__linkhint {
+		color: var(--color-text-maxcontrast);
+		font-size: 0.9em;
+		max-width: 560px;
+		margin: 2px 0 8px;
+	}
+
+	&__linkrow {
+		display: flex;
+		gap: 8px;
+		align-items: flex-end;
+
+		> :first-child {
+			min-width: 320px;
+			flex: 1;
+		}
 	}
 
 	&__add {

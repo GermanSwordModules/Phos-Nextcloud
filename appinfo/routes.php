@@ -19,6 +19,10 @@ return [
 		// the shared web/querybuilder/ bundle (Phase 3, Scope 4), the app's own static asset; the
 		// builder only emits a PQL-subset query string, run via the existing reader#search route
 		['name' => 'qb_asset#get', 'url' => '/qb-bundle/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.+']],
+		// public (anonymous, no Nextcloud account) read-only view of a collection shared via
+		// "Öffentlichen Link erstellen" — its own isolated, token-gated controller, not a mode of
+		// the authenticated SPA above (docs/crosswire-checklist-offene-punkte.md Tier 1 #5)
+		['name' => 'public_share#view', 'url' => '/s/{token}', 'verb' => 'GET'],
 	],
 	'ocs' => [
 		['name' => 'api#status', 'url' => '/api/v1/status', 'verb' => 'GET'],
@@ -37,6 +41,11 @@ return [
 		['name' => 'collections#addMember', 'url' => '/api/v1/collections/{collection}/members', 'verb' => 'POST'],
 		['name' => 'collections#removeMember', 'url' => '/api/v1/collections/{collection}/members/{type}/{pid}', 'verb' => 'DELETE'],
 		['name' => 'collections#sharees', 'url' => '/api/v1/sharees', 'verb' => 'GET'],
+		// public share link (Tier 1 #5): token management is authenticated/admin-only OCS, same as
+		// every other member; the token itself is only ever consumed by public_share#view above
+		['name' => 'collections#getLink', 'url' => '/api/v1/collections/{collection}/link', 'verb' => 'GET'],
+		['name' => 'collections#createLink', 'url' => '/api/v1/collections/{collection}/link', 'verb' => 'POST'],
+		['name' => 'collections#removeLink', 'url' => '/api/v1/collections/{collection}/link', 'verb' => 'DELETE'],
 		// SWORD reader (W-1)
 		['name' => 'reader#modules', 'url' => '/api/v1/modules', 'verb' => 'GET'],
 		['name' => 'reader#books', 'url' => '/api/v1/modules/{module}/books', 'verb' => 'GET'],

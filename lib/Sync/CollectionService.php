@@ -55,9 +55,11 @@ class CollectionService {
 		$this->store->deleteCollection($id);
 	}
 
+	/** People/group/team members only — the public-link pseudo-member (if any)
+	 *  is managed separately through linkToken/ensureLink/revokeLink. */
 	public function members(string $uid, string $id): array {
 		$this->access($uid, $id);
-		return $this->store->members($id);
+		return array_values(array_filter($this->store->members($id), static fn($m) => $m['ptype'] !== 'link'));
 	}
 
 	public function addMember(string $uid, string $id, string $ptype, string $pid, string $perm): void {
@@ -72,6 +74,50 @@ class CollectionService {
 			throw new \InvalidArgumentException('the owner is always a member');
 		}
 		$this->store->setMember($id, $ptype, $pid, $perm);
+	}
+
+	/** Current public-link token, or null when none is set. Stored as an
+	 *  ordinary 'link'-type member row (pid = token, perm = 'read') — inert
+	 *  to every existing access check, which only ever matches 'user'/
+	 *  'group'/'team' principals (see RecordStore::collectionForToken, the
+	 *  only code that reads it back). */
+	public function linkToken(string $uid, string $id): ?string {
+		$this->access($uid, $id);
+		foreach ($this->store->members($id) as $m) {
+			if ($m['ptype'] === 'link') {
+				return $m['pid'];
+			}
+		}
+		return null;
+	}
+
+	/** Creates the public link if there isn't one yet (idempotent — the same
+	 *  token comes back on repeat calls, so the URL stays stable once shared). */
+	public function ensureLink(string $uid, string $id): string {
+		$c = $this->access($uid, $id);
+		if ($c['kind'] !== 'shared' || !CollectionPerm::canAdmin($c['perm'])) {
+			throw new ForbiddenException('only admins manage the public link');
+		}
+		foreach ($this->store->members($id) as $m) {
+			if ($m['ptype'] === 'link') {
+				return $m['pid'];
+			}
+		}
+		$token = bin2hex(random_bytes(24));
+		$this->store->setMember($id, 'link', $token, 'read');
+		return $token;
+	}
+
+	public function revokeLink(string $uid, string $id): void {
+		$c = $this->access($uid, $id);
+		if ($c['kind'] !== 'shared' || !CollectionPerm::canAdmin($c['perm'])) {
+			throw new ForbiddenException('only admins manage the public link');
+		}
+		foreach ($this->store->members($id) as $m) {
+			if ($m['ptype'] === 'link') {
+				$this->store->removeMember($id, 'link', $m['pid']);
+			}
+		}
 	}
 
 	public function removeMember(string $uid, string $id, string $ptype, string $pid): void {
