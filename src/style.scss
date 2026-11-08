@@ -252,3 +252,59 @@ body[data-themes*='dark'] #phos {
 		margin: 0;
 	}
 }
+
+// App theme (setting Display.ThemeMode, shared with desktop and mobile). Overrides Nextcloud's own
+// colour variables inside the content area only, so every Nextcloud component there follows along;
+// the navigation keeps the instance theme. Values: BVC/data/app-palettes.json.
+#phos [data-phos-theme='light'] {
+	--color-main-background: #ffffff;
+	--color-main-text: #222222;
+	--color-text-maxcontrast: #555c66;
+	--color-background-hover: #f2f3f5;
+	--color-background-dark: #ebedf0;
+	--color-border: #c4c9d0;
+	--color-border-dark: #aab0b8;
+	--phos-jesus: #b3261e;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+#phos [data-phos-theme='dark'] {
+	--color-main-background: #121212;
+	--color-main-background-rgb: 18, 18, 18;
+	--color-main-text: #dddddd;
+	--color-text-maxcontrast: #a0a0a0;
+	--color-background-hover: #1e1e1e;
+	--color-background-dark: #262626;
+	--color-border: #3a3a3a;
+	--color-border-dark: #555555;
+	--color-primary-element-light: #1f3a5c;
+	--color-primary-element-light-text: #d6e4ff;
+	--color-primary-element-light-hover: #284a72;
+	--phos-jesus: #ef8a80;
+	--phos-ref: #7fb3e0;
+	--phos-note: #7fb3e0;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	color-scheme: dark;
+}
+
+#phos [data-phos-theme='sepia'] {
+	--color-main-background: #f4ecd8;
+	--color-main-background-rgb: 244, 236, 216;
+	--color-main-text: #3b2f22;
+	--color-text-maxcontrast: #6b5a45;
+	--color-background-hover: #ebe0c6;
+	--color-background-dark: #e6d8b4;
+	--color-border: #d8c8a8;
+	--color-border-dark: #c9b48e;
+	--color-primary-element-light: #e8d3b0;
+	--color-primary-element-light-text: #3b2410;
+	--color-primary-element-light-hover: #dcc39a;
+	--phos-jesus: #a33a26;
+	--phos-ref: #2f6a8a;
+	--phos-note: #2f6a8a;
+	--phos-page: #f4ecd8;
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+}

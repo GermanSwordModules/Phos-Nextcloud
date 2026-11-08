@@ -217,6 +217,17 @@ export function lexiconsFor(strong) {
 
 // ---------- settings (synced from the desktop) ----------
 
+/** The app theme shared with Phos Desktop and Phos Mobile (setting Display.ThemeMode). light, dark or
+ * sepia re-colour the content area; auto (or unset) leaves it to the Nextcloud theme. */
+export const THEME_MODES = ['auto', 'light', 'dark', 'sepia']
+export function readerTheme() {
+	const v = setting('Display.ThemeMode')
+	return ['light', 'dark', 'sepia'].includes(v) ? v : ''
+}
+export function setReaderTheme(mode) {
+	return engine.write('setting', 'setting:Display.ThemeMode', { value: mode })
+}
+
 export function setting(name) {
 	return engine.get('setting', 'setting:' + name)?.payload?.value ?? null
 }

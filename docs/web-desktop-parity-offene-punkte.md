@@ -35,6 +35,43 @@ Verifiziert: `npm test` (24/24), `npm run build`, PHPUnit (93/93), `tests/web/en
 (3/3), Playwright-Smoke (29/29 inkl. 8 neue Szenarien für die obigen Punkte) — alles über
 `dev/compose.sh up|web` gegen eine echte Nextcloud-Instanz (podman `phos-nc-dev`).
 
+## Runde 2026-11-07 (Theme, Synopse, Wortstudie, Export) — erledigt, uncommitted
+
+- **Farbschema (alle Geräte)**: Ansicht-Menü → Hell/Dunkel/Sepia/Automatisch, gespeichert als
+  `setting:Display.ThemeMode` — derselbe Schlüssel wie Desktop (`Cfg.ThemeMode`) und Phos Mobile.
+  Hell/Dunkel/Sepia überschreiben im Inhaltsbereich (`NcAppContent[data-phos-theme]`) Nextclouds
+  Farbvariablen, damit auch NC-Komponenten mitziehen; Automatisch = Nextcloud-Design wie bisher.
+  Werte aus `BVC/data/app-palettes.json`. E-Book-Seite in Sepia sepiafarben (`--phos-page`).
+- **Evangelien-Synopse** (`/synopsis`, `SynopsisView.vue`): Daten per `dev/gen_synopsis.py` aus
+  BVC `data/compositeGospel.1.2.xml` + `synopsis-titles-de.csv` → `src/synopsis/pericopes.json`;
+  Suche nach Titel oder Stelle („Mk 4“), Spalten je Evangelium, Bibelwahl; Knopf in der Bibelansicht
+  bei Evangelien.
+- **Wortstudie** (`/wordstudy/:strong`, `WordStudyView.vue`): Lexikoneintrag, Verteilung pro Buch
+  (Server-Suche nach `G26`/`H430`), Übersetzungsring aus den `data-lemma`-Wörtern der Treffer,
+  Stellenliste mit markiertem Wort; Einstieg über das Wort-Popover („Wortstudie“).
+  **Nicht**: Lemmatizer, LXX-Brücke, verwandte Wörter, KI-Überblick (brauchen Desktop-Werkzeuge).
+- **Lesezeichen-/Notizen-Export** (Markdown/HTML/Text) der gefilterten Liste.
+- **Randnotizen**: `clear: right` — dichte Fußnoten stapeln sich unter- statt nebeneinander
+  (die Wirkung von Desktops `SideNoteScript`).
+- **Übersetzungen**: 26 bisher englische Texte (Ansicht-Menü, Navigationsgruppen, Versauswahl,
+  öffentlicher Link) jetzt deutsch; Tests angepasst.
+
+Verifiziert: `npm test` (alle grün), `npm run build`, Playwright-Smoke 34/34 (5 neue Szenarien)
+über `dev/compose.sh web`.
+
+## Weiterhin offen (Web gegenüber Desktop), nach Aufwand
+
+- **Interlinear** (siehe Tier 4 unten).
+- **Studienbibel / Exegetischer Leitfaden**, **Planer/Predigtplaner** (CalDAV), **KI/RAG-Fragen**,
+  **Druckbibliothek** — eigene Werkzeuge, jeweils Folgeprojekt.
+- **Atlas**: Web-Payload-Builder (Atlas „Phase 9“) fehlt; `BVC/web/atlas/` wäre wiederverwendbar.
+- **Studienprojekte bearbeiten** (Begriffe, Belegstellen, Literatur, Synthese, Workbench) und das
+  Konzept „aktives Projekt“ — heute nur lesend.
+- **Orts-/Personenmarker, Gliederung** — braucht Marker in `render.js` und im PHP-Reader.
+- **Query Builder** jenseits AND (OR, NEAR, COUNT, …) — Grenze der Server-Suche.
+- **Syntaxdiagramme bearbeiten**, **Instant Details** (Klick-Verhalten), **Text-Anatomie**.
+- **Hierarchische Lesezeichen-Ordner** (fehlt auch am Desktop).
+
 ## Tier 4 — für später, bewusst nicht jetzt gemacht
 
 **Interlinear-Ansicht**: existiert im Web überhaupt nicht (Strong's nur im Popover, nie

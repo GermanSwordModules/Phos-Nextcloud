@@ -20,6 +20,14 @@
 				</template>
 				{{ t('phos', 'Copy') }}
 			</NcButton>
+			<NcButton v-if="strongOf(popover.title)"
+				variant="tertiary"
+				@click="router.push({ name: 'wordstudy', params: { strong: strongOf(popover.title) } })">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconWordStudy" />
+				</template>
+				{{ t('phos', 'Word study') }}
+			</NcButton>
 			<NcButton variant="tertiary" @click="$emit('search', popover.text)">
 				<template #icon>
 					<NcIconSvgWrapper :path="iconSearch" />
@@ -35,10 +43,15 @@ import { computed } from 'vue'
 import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { iconCopy, iconSearch } from '../icons.js'
+import { useRouter } from 'vue-router'
+import { iconCopy, iconSearch, iconWordStudy } from '../icons.js'
+import { normStrong } from '../wordstudy/wordstudy.js'
 
 const props = defineProps({ popover: { type: Object, default: null } })
 const emit = defineEmits(['keep', 'ref', 'dict', 'search'])
+const router = useRouter()
+/** The first Strong's number of a word popover's title ("G26 G3588"), else null. */
+const strongOf = title => normStrong(String(title || '').split(/\s+/)[0])
 
 const title = computed(() => {
 	const p = props.popover

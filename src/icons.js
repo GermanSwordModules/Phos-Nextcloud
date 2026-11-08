@@ -1,5 +1,7 @@
 export {
 	mdiBookOpenPageVariantOutline as iconBible,
+	mdiViewColumnOutline as iconSynopsis,
+	mdiAlphaGBoxOutline as iconWordStudy,
 	mdiBookmarkOutline as iconBookmarks,
 	mdiNoteTextOutline as iconNotes,
 	mdiNotebookOutline as iconPads,

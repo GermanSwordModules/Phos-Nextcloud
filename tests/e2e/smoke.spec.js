@@ -278,7 +278,7 @@ test('continue reading: the desktop’s workspace on the start page; book positi
 	await page.goto('/index.php/apps/phos/#/book/TINYBOOK')
 	const entry = page.locator('.book__entry')
 	await expect(entry.locator('h3')).toHaveText('Kapitel 2')
-	await entry.getByRole('button', { name: 'Zurück' }).click()
+	await entry.getByRole('button', { name: 'Zurück', exact: true }).click()
 	await expect(entry.locator('h3')).toHaveText('Kapitel 1')
 	await expect.poll(async () => (await record(request, 'readingPosition', 'pos:mod:TINYBOOK'))?.payload.entryKey).toBe('/Teil Eins/Kapitel 1')
 })
@@ -725,18 +725,18 @@ test('view options: Strong\'s, footnotes, headings, red-letter and chapter numbe
 	const shown = await word.evaluate(el => getComputedStyle(el, '::after').content)
 	expect(shown).toContain('H07225')
 
-	await inMenu('menuitemcheckbox', 'Footnotes and cross-references').click()
+	await inMenu('menuitemcheckbox', 'Fußnoten und Querverweise').click()
 	await expect(text).toHaveClass(/opts-hide-notes/)
 	await expect(text.locator('[data-v="2"] .phos-note').first()).toBeHidden()
 
-	await inMenu('menuitemcheckbox', 'Headings').click()
+	await inMenu('menuitemcheckbox', 'Überschriften').click()
 	await expect(text).toHaveClass(/opts-hide-headings/)
 	await expect(text.locator('.phos-heading').first()).toBeHidden()
 
-	await inMenu('menuitemcheckbox', 'Words of Jesus in red').click()
+	await inMenu('menuitemcheckbox', 'Worte Jesu in Rot').click()
 	await expect(text).toHaveClass(/opts-no-redletter/)
 
-	await inMenu('menuitemcheckbox', 'Chapter number in the margin').click()
+	await inMenu('menuitemcheckbox', 'Kapitelnummer am Rand').click()
 	await expect(text).toHaveClass(/opts-chapternum/)
 	await expect(text.locator('.bible__row--first')).toHaveAttribute('data-chapternum', '1')
 })
@@ -744,8 +744,8 @@ test('view options: Strong\'s, footnotes, headings, red-letter and chapter numbe
 test('view options: larger/smaller text persists the zoom level', async ({ page }) => {
 	const menu = page.locator('.bible__viewopts')
 	await menu.locator('button').first().click()
-	await page.getByRole('menuitem', { name: 'Larger text' }).click()
-	await page.getByRole('menuitem', { name: 'Larger text' }).click()
+	await page.getByRole('menuitem', { name: 'Größere Schrift' }).click()
+	await page.getByRole('menuitem', { name: 'Größere Schrift' }).click()
 	await expect(page.locator('.bible__text')).toHaveCSS('--phos-zoom', '1.2')
 	await page.reload()
 	await expect(page.locator('.bible__text')).toHaveCSS('--phos-zoom', '1.2')
@@ -774,16 +774,16 @@ test('N-version parallel: three Bibles side by side, all three navigate together
 })
 
 test('verse picker: book, then chapter, then verse grid jumps there', async ({ page }) => {
-	await page.getByRole('button', { name: 'Go to a verse …' }).click()
+	await page.getByRole('button', { name: 'Zu einem Vers …' }).click()
 	const dialog = page.getByRole('dialog')
 	// opened from Gen 1: it is a shortcut, so it starts at this book's chapters
-	await expect(dialog).toContainText('Go to a chapter of Genesis')
+	await expect(dialog).toContainText('Zu einem Kapitel von Genesis')
 	await dialog.locator('.versepicker__crumb button').first().click()
-	await expect(dialog).toContainText('Go to a book')
+	await expect(dialog).toContainText('Zu einem Buch')
 	await dialog.getByRole('button', { name: 'Johannes', exact: true }).click()
-	await expect(dialog).toContainText('Go to a chapter of Johannes')
+	await expect(dialog).toContainText('Zu einem Kapitel von Johannes')
 	await dialog.getByRole('button', { name: '3', exact: true }).click()
-	await expect(dialog).toContainText('Go to a verse of Johannes 3')
+	await expect(dialog).toContainText('Zu einem Vers von Johannes 3')
 	await dialog.getByRole('button', { name: '16', exact: true }).click()
 	await expect(page.locator('.bible__text [data-v="16"]')).toHaveClass(/bible__row--selected/)
 	await expect(page).toHaveURL(/#\/bible\/TINYZ\/John\/3/)
@@ -793,9 +793,9 @@ test('history back/forward buttons retrace chapter navigation', async ({ page })
 	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Gen/1')
 	await page.goto('/index.php/apps/phos/#/bible/TINYZ/Gen/2')
 	await expect(page).toHaveURL(/Gen\/2/)
-	await page.getByRole('button', { name: 'Back' }).click()
+	await page.getByRole('button', { name: 'Zurück', exact: true }).click()
 	await expect(page).toHaveURL(/Gen\/1/)
-	await page.getByRole('button', { name: 'Forward' }).click()
+	await page.getByRole('button', { name: 'Vor', exact: true }).click()
 	await expect(page).toHaveURL(/Gen\/2/)
 })
 
@@ -804,7 +804,7 @@ test('export as PDF calls the browser print dialog', async ({ page }) => {
 	await page.exposeFunction('__printed', () => { printed = true })
 	await page.evaluate(() => { window.print = () => window.__printed() })
 	await page.locator('.bible__viewopts button').first().click()
-	await page.getByRole('menuitem', { name: 'Export as PDF …' }).click()
+	await page.getByRole('menuitem', { name: 'Als PDF exportieren …' }).click()
 	await expect.poll(() => printed).toBe(true)
 })
 
@@ -812,7 +812,7 @@ test('footnotes in the margin: the note text itself appears beside the verse, no
 	const text = page.locator('.bible__text')
 	const menu = page.locator('.bible__viewopts')
 	await menu.locator('button').first().click()
-	await page.getByRole('menu').getByRole('menuitemcheckbox', { name: 'Footnotes in the margin' }).click()
+	await page.getByRole('menu').getByRole('menuitemcheckbox', { name: 'Fußnoten am Rand' }).click()
 	await expect(text).toHaveClass(/opts-sidenotes/)
 	const side = text.locator('[data-v="2"] .bible__sidenotes')
 	await expect(side).toBeVisible()
@@ -820,11 +820,82 @@ test('footnotes in the margin: the note text itself appears beside the verse, no
 })
 
 test('navigation sidebar is grouped into sections (desktop: sectioned toolbar)', async ({ page }) => {
-	const groups = ['Bible & study', 'My own', 'Präsentation', 'Nextcloud sync']
+	const groups = ['Bibel & Studium', 'Meine Daten', 'Präsentation', 'Nextcloud-Abgleich']
 	for (const g of groups) {
 		await expect(page.locator('.app-navigation-caption__name', { hasText: g })).toBeVisible()
 	}
 	// a route from each group is still reachable
 	await expect(page.getByRole('link', { name: 'Studienpads' })).toBeVisible()
 	await expect(page.getByRole('link', { name: 'Geräte' })).toBeVisible()
+})
+
+test('gospel synopsis: from a gospel chapter to its parallels; list filter by reference', async ({ page }) => {
+	await page.goto('/index.php/apps/phos/#/bible/TINYZ/John/3?v=16')
+	await page.getByRole('button', { name: 'Evangelien-Synopse' }).click()
+	const col = page.locator('.synopsis__col').filter({ hasText: 'Johannes' })
+	await expect(col).toBeVisible()
+	await expect(col).toContainText('For God so loved the world')
+	await page.getByLabel('Titel oder Stelle (z. B. Mk 4)').fill('Mk 4')
+	await expect(page.locator('.synopsis__item').first()).toContainText('Markus 4')
+})
+
+test('theme: chosen in the web reaches the server, a desktop choice comes back', async ({ page, request }) => {
+	const menu = page.locator('.bible__viewopts')
+	await menu.locator('button').first().click()
+	await page.getByRole('menu').getByRole('menuitemradio', { name: 'Dunkel' }).click()
+	await expect(page.locator('[data-phos-theme="dark"]')).toBeVisible()
+	const bg = await page.locator('[data-phos-theme="dark"]').evaluate(el => getComputedStyle(el).backgroundColor)
+	expect(bg).toBe('rgb(18, 18, 18)')
+	await expect(page.locator('.app-navigation')).toContainText('Abgeglichen', { timeout: 15000 })
+	let rec = null
+	await expect.poll(async () => (rec = await record(request, 'setting', 'setting:Display.ThemeMode'))?.payload?.value).toBe('dark')
+
+	await desktopPush(request, { type: 'setting', key: 'setting:Display.ThemeMode', baseRev: rec.rev, payload: { value: 'sepia' } })
+	await page.keyboard.press('Escape')
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await expect(page.locator('[data-phos-theme="sepia"]')).toBeVisible()
+
+	await menu.locator('button').first().click()
+	await page.getByRole('menu').getByRole('menuitemradio', { name: 'Automatisch (Nextcloud-Design)' }).click()
+	await expect(page.locator('[data-phos-theme]')).toHaveCount(0)
+})
+
+test('bookmark list exports as Markdown with reference and note', async ({ page, request }) => {
+	await desktopPush(request, { type: 'bookmark', key: 'bm:exp-1', baseRev: 0, payload: {
+		id: 'exp-1', kind: 'verse', bookOsis: 'John', chap: 3, vStart: 16, vEnd: 16, labelNames: [], noteMd: 'Export-Notiz', modified: 1800000000,
+	} })
+	await page.getByRole('button', { name: 'Jetzt abgleichen' }).click()
+	await page.goto('/index.php/apps/phos/#/bookmarks')
+	await expect(page.locator('.bms__list')).toContainText('Export-Notiz')
+	await page.getByRole('button', { name: 'Exportieren' }).click()
+	const [dl] = await Promise.all([
+		page.waitForEvent('download'),
+		page.getByRole('menuitem', { name: 'Markdown (.md)' }).click(),
+	])
+	expect(dl.suggestedFilename()).toBe('phos-bookmarks.md')
+	const text = await (await dl.createReadStream()).toArray().then(c => Buffer.concat(c).toString('utf8'))
+	expect(text).toMatch(/^# Lesezeichen/)
+	expect(text).toMatch(/## Johannes 3,16[\s\S]*Export-Notiz/)
+})
+
+test('margin notes never sit side by side: each verse\'s notes clear the previous ones', async ({ page }) => {
+	const menu = page.locator('.bible__viewopts')
+	await menu.locator('button').first().click()
+	await page.getByRole('menu').getByRole('menuitemcheckbox', { name: 'Fußnoten am Rand' }).click()
+	const side = page.locator('.bible__text .bible__sidenotes').first()
+	await expect(side).toBeVisible()
+	expect(await side.evaluate(el => getComputedStyle(el).clear)).toBe('right')
+})
+
+test('word study: from a tapped word to lexicon, per-book counts, translation ring and passages', async ({ page }) => {
+	const word = page.locator('.bible__text [data-v="1"] .phos-w').first()   // Gen 1:1 "beginning", H07225
+	await word.click()
+	await page.locator('.phos-popover').getByRole('button', { name: 'Wortstudie' }).click()
+	await expect(page).toHaveURL(/#\/wordstudy\/H7225/)
+	await expect(page.locator('.wordstudy__lex h3')).toHaveText('H7225')
+	await expect(page.locator('.wordstudy__book').first()).toBeVisible()
+	const chip = page.locator('.wordstudy__chip').first()
+	await expect(chip).toContainText(/beginning/i)
+	await expect(page.locator('.wordstudy__hits li').first()).toContainText('Genesis 1,1')
+	await expect(page.locator('.wordstudy__hits .phos-ws-hit').first()).toBeVisible()
 })

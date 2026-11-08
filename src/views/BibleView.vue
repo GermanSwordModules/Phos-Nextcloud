@@ -62,6 +62,15 @@
 					<NcIconSvgWrapper :path="iconHistForward" />
 				</template>
 			</NcButton>
+			<NcButton v-if="!isCommentary && GOSPELS.includes(book)"
+				variant="tertiary"
+				:aria-label="t('phos', 'Gospel synopsis')"
+				:title="t('phos', 'Parallels in the other gospels')"
+				@click="router.push({ name: 'synopsis', query: { book, c: chapter, v: route.query.v || 0 } })">
+				<template #icon>
+					<NcIconSvgWrapper :path="iconSynopsis" />
+				</template>
+			</NcButton>
 			<BibleViewOptions v-model:verse-per-line="versePerLine" class="bible__viewopts" @print="printView" />
 		</div>
 		<VersePicker v-model:open="versePickerOpen" :books="books" :book="book" :chapter="chapter" @go="go" />
@@ -169,6 +178,7 @@
 </template>
 
 <script setup>
+import { GOSPELS } from '../synopsis/synopsis.js'
 import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { t } from '@nextcloud/l10n'
@@ -191,7 +201,7 @@ import {
 	bookmarksIn, labels, resumePosition, rememberPosition, localOnlyOptions, syntaxDiagramFor,
 	displayOptions, textZoom } from '../services/phos.js'
 import SyntaxDiagramPanel from '../components/SyntaxDiagramPanel.vue'
-import { iconPrev, iconNext, iconSyntax, iconHistBack, iconHistForward, iconVerseGrid } from '../icons.js'
+import { iconPrev, iconNext, iconSyntax, iconHistBack, iconHistForward, iconVerseGrid, iconSynopsis } from '../icons.js'
 
 /**
  * The Bible text, standalone (route `bible`) or as the left half of the
@@ -736,6 +746,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 		font-size: 0.78em;
 		color: var(--color-text-maxcontrast);
 		float: right;
+		// each verse's notes start at max(own verse, end of the previous notes) -- what the desktop's
+		// SideNoteScript computes in JS; without it dense notes sat side by side or over each other
+		clear: right;
 		width: 200px;
 	}
 

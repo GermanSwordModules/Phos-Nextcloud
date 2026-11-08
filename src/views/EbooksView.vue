@@ -281,7 +281,7 @@ onBeforeUnmount(() => {
 		min-height: 420px;
 		border: 1px solid var(--color-border);
 		border-radius: var(--border-radius-large);
-		background: #fff;
+		background: var(--phos-page, #fff);
 	}
 
 	&__error {

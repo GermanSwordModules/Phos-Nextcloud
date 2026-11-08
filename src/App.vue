@@ -27,7 +27,7 @@
 				</div>
 			</template>
 		</NcAppNavigation>
-		<NcAppContent>
+		<NcAppContent :data-phos-theme="readerTheme() || null">
 			<NcEmptyContent v-if="startError" :name="t('phos', 'Phos could not start')" :description="startError" />
 			<NcEmptyContent v-else-if="!state.ready" :name="t('phos', 'Loading …')">
 				<template #icon>
@@ -53,7 +53,7 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import { showError, showWarning } from '@nextcloud/dialogs'
-import { engine, state, start, loadModules } from './services/phos.js'
+import { engine, state, start, loadModules, readerTheme } from './services/phos.js'
 import { useRoute } from 'vue-router'
 import * as I from './icons.js'
 
@@ -74,6 +74,8 @@ const navGroups = computed(() => [
 			{ to: '/bible', name: t('phos', 'Bible'), icon: I.iconBible },
 			{ to: '/search', name: t('phos', 'Search'), icon: I.iconSearch },
 			{ to: '/facts', name: t('phos', 'Facts'), icon: I.iconFacts },
+			{ to: '/synopsis', name: t('phos', 'Gospel synopsis'), icon: I.iconSynopsis },
+			{ to: '/wordstudy', name: t('phos', 'Word study'), icon: I.iconWordStudy },
 		],
 	},
 	{

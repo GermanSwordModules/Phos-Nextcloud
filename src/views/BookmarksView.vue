@@ -13,6 +13,11 @@
 			<NcCheckboxRadioSwitch v-model="withText" type="switch">
 				{{ t('phos', 'Show Bible text') }}
 			</NcCheckboxRadioSwitch>
+			<NcActions :menu-name="t('phos', 'Export')" :disabled="!filtered.length">
+				<NcActionButton v-for="(f, id) in EXPORT_FORMATS" :key="id" :close-after-click="true" @click="download(id)">
+					{{ { md: t('phos', 'Markdown (.md)'), html: t('phos', 'Web page (.html)'), txt: t('phos', 'Plain text (.txt)') }[id] }}
+				</NcActionButton>
+			</NcActions>
 		</div>
 		<NcEmptyContent v-if="!filtered.length" :name="notesOnly ? t('phos', 'No notes found') : t('phos', 'No bookmarks found')" />
 		<ul class="bms__list">
@@ -55,7 +60,10 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NoteEditor from '../components/NoteEditor.vue'
+import { exportBookmarks, EXPORT_FORMATS } from '../bookmarks/export.js'
 import PassageText from '../components/PassageText.vue'
 import { bookmarks, labels, labelDisplay, setNote, defaultBible, bibles, lang, prefs } from '../services/phos.js'
 import { formatRef, KJV_ORDER, normalize } from '../bible/books.js'
@@ -116,6 +124,22 @@ function open(bm) {
 	if (bm.bookOsis) {
 		router.push({ name: 'bible', params: { module: bm.module && isBible(bm.module) ? bm.module : defaultBible(), book: bm.bookOsis, chapter: bm.chap }, query: { v: bm.vStart } })
 	}
+}
+
+/** The list as filtered and sorted right now, all of it (not only the rows shown so far). */
+function download(format) {
+	const title = props.notesOnly ? t('phos', 'Notes') : t('phos', 'Bookmarks')
+	const text = exportBookmarks(filtered.value, format, {
+		ref: refOf,
+		labels: bm => (bm.labelNames || []).map(labelDisplay),
+		date: dateOf,
+		note: bm => bm.noteMd || htmlText(bm.noteHtml),
+	}, title)
+	const a = document.createElement('a')
+	a.href = URL.createObjectURL(new Blob([text], { type: EXPORT_FORMATS[format].mime + ';charset=utf-8' }))
+	a.download = `phos-${props.notesOnly ? 'notes' : 'bookmarks'}.${EXPORT_FORMATS[format].ext}`
+	a.click()
+	setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
 watch(withText, v => prefs.set('listWithText', v))

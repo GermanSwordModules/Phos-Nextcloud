@@ -35,6 +35,16 @@
 			{{ t('phos', 'Words of Jesus in red') }}
 		</NcActionCheckbox>
 		<NcActionSeparator />
+		<NcActionCaption :name="t('phos', 'Theme (all devices)')" />
+		<NcActionRadio v-for="m in THEME_MODES"
+			:key="m"
+			name="phos-theme"
+			:value="m"
+			:model-value="readerTheme() || 'auto'"
+			@update:model-value="setReaderTheme(m)">
+			{{ themeLabel(m) }}
+		</NcActionRadio>
+		<NcActionSeparator />
 		<NcActionButton :close-after-click="false" @click="setTextZoom(textZoom - 10)">
 			<template #icon>
 				<NcIconSvgWrapper :path="iconZoomOut" />
@@ -62,8 +72,10 @@ import NcActions from '@nextcloud/vue/components/NcActions'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcActionCheckbox from '@nextcloud/vue/components/NcActionCheckbox'
 import NcActionSeparator from '@nextcloud/vue/components/NcActionSeparator'
+import NcActionCaption from '@nextcloud/vue/components/NcActionCaption'
+import NcActionRadio from '@nextcloud/vue/components/NcActionRadio'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { displayOptions, setDisplayOption, textZoom, setTextZoom } from '../services/phos.js'
+import { displayOptions, setDisplayOption, textZoom, setTextZoom, THEME_MODES, readerTheme, setReaderTheme } from '../services/phos.js'
 import { iconViewOptions, iconPrint, iconZoomIn, iconZoomOut, iconZoomReset } from '../icons.js'
 
 /**
@@ -75,4 +87,11 @@ import { iconViewOptions, iconPrint, iconZoomIn, iconZoomOut, iconZoomReset } fr
  */
 defineProps({ versePerLine: { type: Boolean, default: true } })
 defineEmits(['update:versePerLine', 'print'])
+
+const themeLabel = m => ({
+	auto: t('phos', 'Automatic (Nextcloud theme)'),
+	light: t('phos', 'Light'),
+	dark: t('phos', 'Dark'),
+	sepia: t('phos', 'Sepia'),
+})[m]
 </script>
