@@ -48,7 +48,7 @@ what would be uploaded and downloaded before anything is written.
 - [docs/protocol.md](docs/protocol.md): the sync protocol (normative), with
   [protocol/types.json](protocol/types.json) (merge policy per record type) and the conformance
   vectors in [protocol/vectors/](protocol/vectors/) that every implementation has to pass.
-- [docs/PLAN.md](docs/PLAN.md): design and the work packages that got the app where it is.
+- [docs/plan-history.md](docs/plan-history.md): design and the work packages that got the app where it is.
 - [docs/entwicklung.md](docs/entwicklung.md): development environment, test setup, pitfalls.
 - [docs/release.md](docs/release.md): building the release archive, App Store publishing.
 - [CHANGELOG.md](CHANGELOG.md), [docs/credits.md](docs/credits.md).

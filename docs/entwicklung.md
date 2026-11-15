@@ -1,7 +1,7 @@
 # Entwicklung
 
-Gesamtplan und Arbeitspakete: `docs/PLAN.md`. Protokoll (normativ): `docs/protocol.md`.
-Was im Web gegenüber dem Desktop noch fehlt: `docs/PLAN.md` §12.
+Gesamtplan und Arbeitspakete: `docs/plan-history.md`. Protokoll (normativ): `docs/protocol.md`.
+Was im Web gegenüber dem Desktop noch fehlt: `docs/plan-history.md` §12.
 
 ## Arbeitsumgebung
 
