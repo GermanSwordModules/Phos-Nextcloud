@@ -79,6 +79,24 @@ Layout:
 
 CI runs PHPUnit on PHP 8.2–8.4 and the HTTP integration tests against `nextcloud:stable`.
 
+## What comes from other repositories
+
+The desktop app lives in a separate repository (working name `BVC`, which is why that name
+shows up in scripts and docs here). These parts of this repo are not written here but copied or
+generated from it, and are only ever changed there:
+
+| Here | From | How |
+|---|---|---|
+| `facts-bundle/`, `data/facts/` | desktop `web/facts/`, `data/topic-*` | `dev/sync-facts-assets.js` |
+| `syntax-bundle/` | desktop `web/syntax/` | `dev/sync-syntax-assets.js` |
+| `qb-bundle/` | desktop `web/querybuilder/` | `dev/sync-qb-assets.js` |
+| `src/docs/themes.js`, `src/docs/phos-deck.css` | desktop presentation themes and `phos.css` | `dev/sync-desktop-assets.js` |
+| `src/synopsis/pericopes.json` | desktop `data/compositeGospel.1.2.xml` + German titles | `dev/gen_synopsis.py` |
+| `lib/Service/Sword/v11n.json`, `v11n-maps.json` | libsword `canon_*.h` | `dev/gen_v11n.py` |
+
+The sync protocol, the PHP SWORD readers and the Vue frontend are written in this repo. The
+desktop and mobile clients implement the same protocol (`docs/protocol.md`).
+
 ## License
 
 AGPL-3.0-or-later, see [LICENSE](LICENSE). Third-party data and the sources of the bundled

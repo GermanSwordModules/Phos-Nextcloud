@@ -62,7 +62,7 @@ forever.
 ```jsonc
 // Record (as returned by the server)
 {
-  "collection": "c0ffee…uuid",   // personal collection unless shared (phase 2)
+  "collection": "c0ffee…uuid",   // personal collection unless shared
   "type": "bookmark",
   "key": "bm:6A168692-F30E62E0",
   "rev": 42,                     // journal sequence of the last write
@@ -230,7 +230,31 @@ from their copy. A record whose payload would exceed the limit is stored as a
 file below `Phos/.records/<type>/` and sent as `{"$file": "<path>", "size":
 …, "md5": …}`; receivers fetch and substitute it before applying.
 
-## 11. Sharing (phase 2)
+## 9. Garbage collection
+
+Background job daily: tombstones older than 180 days are purged and
+`gcHorizon` is raised to the highest purged rev. Push-journal entries
+(`changeId` dedupe) older than 30 days are pruned. History keeps 50 versions
+per record.
+
+## 10. Conformance vectors
+
+`protocol/vectors/*.json`:
+
+```jsonc
+{ "name": "…", "description": "…", "now": 1791200000000,
+  "steps": [
+    { "push": { "device": "…", "changes": [ … ] },
+      "expect": [ { "status": "accepted", "record": { "rev": 1 } } ] },
+    { "pull": { "cursor": 0 }, "expect": { "cursor": 2, "changes": [ … ] } },
+    { "get": { "type": "…", "key": "…" }, "expect": { "payload": { … } } }
+  ] }
+```
+
+`expect` is matched as a **subset** (only listed fields are compared; arrays
+compare element-wise and must have equal length). Revs start at 1 per vector.
+`collection` may be omitted everywhere (personal collection).
+## 11. Sharing
 
 Every record belongs to a collection. Besides the personal one, a user can
 create **shared collections** and add members — Nextcloud users, groups or
@@ -272,7 +296,7 @@ members). Changing a member's permission sends nothing; removing a user member
 or deleting the collection marks the notification processed. Clients show
 newly joined collections themselves (`joined`/`collections` above).
 
-## 12. Module reader (phase 3)
+## 12. Module reader
 
 The server reads synced SWORD modules itself (PHP, `lib/Service/Sword/`, no
 libsword): zText/zCom (2- and 4-byte sizes), RawText/RawCom (also 4), zLD,
@@ -290,13 +314,13 @@ client's job. All OCS, base `/ocs/v2.php/apps/phos/api/v1`:
 - `GET /modules/{name}/text/{osisBook}/{chapter}` → `{book, chapter, bookIntro, intro,
   verses:{n: markup}, links:{n: first}}` — `links`: verses sharing one entry
   with an earlier verse (commentaries); their text repeats the first one.
-  `?as=<versification>` (W-3-C): the chapter counted in that system, filled from
+  `?as=<versification>`: the chapter counted in that system, filled from
   this module with libsword's mapping tables (`v11n-maps.json`, rule for rule like
   `VersificationMgr::System::translateVerse`) → additionally `refs:{n: "Ps.22.1"}`
   where the text comes from another place, `"Ps.22.0-1"` for a range. A verse whose
   mapped place is empty takes the same number when that verse is not shown elsewhere
   (modules declaring a versification their text does not follow).
-- `GET /modules/{name}/search?q=&mode=all|any&books=&offset=&limit=` (W-4, Bibles and
+- `GET /modules/{name}/search?q=&mode=all|any&books=&offset=&limit=` (Bibles and
   commentaries) → `{total, perBook:{osis: n}, terms:[word or prefix*], strongs:[G26],
   hits:[{book, chapter, verse, text: markup}], ms}`. Query: words (all must occur; `mode=any`:
   one is enough), `"a phrase"`, `prefix*` (≥ 2 letters), `-excluded`, `G26`/`H430` (Strong's).
@@ -338,7 +362,7 @@ requests answer 422. Errors: 404 unknown module/entry, 422 unreadable
 (locked, wrong key, no such chapter, files missing). Results are cached per
 manifest revision (and per key for ciphered modules).
 
-## 13. Deck media and phone remote (W-6)
+## 13. Deck media and phone remote
 
 **Media from elsewhere.** A deck's pictures outside its own folder and its
 non built-in themes (with their background and logo files) are copied by the
@@ -365,27 +389,3 @@ not readable. Desktops do not apply other devices' lists. The desktop's
 library in turn shows modules that are only in the Nextcloud (its catalogue
 of all `module` records, `ncsync-modcatalog.json`), greyed, with "Herunterladen".
 
-## 9. Garbage collection
-
-Background job daily: tombstones older than 180 days are purged and
-`gcHorizon` is raised to the highest purged rev. Push-journal entries
-(`changeId` dedupe) older than 30 days are pruned. History keeps 50 versions
-per record.
-
-## 10. Conformance vectors
-
-`protocol/vectors/*.json`:
-
-```jsonc
-{ "name": "…", "description": "…", "now": 1791200000000,
-  "steps": [
-    { "push": { "device": "…", "changes": [ … ] },
-      "expect": [ { "status": "accepted", "record": { "rev": 1 } } ] },
-    { "pull": { "cursor": 0 }, "expect": { "cursor": 2, "changes": [ … ] } },
-    { "get": { "type": "…", "key": "…" }, "expect": { "payload": { … } } }
-  ] }
-```
-
-`expect` is matched as a **subset** (only listed fields are compared; arrays
-compare element-wise and must have equal length). Revs start at 1 per vector.
-`collection` may be omitted everywhere (personal collection).
