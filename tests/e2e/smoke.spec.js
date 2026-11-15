@@ -455,7 +455,7 @@ test('presentation: pictures from elsewhere and the user\'s themes (background, 
 	}
 	// what the desktop's MirrorExternalMedia writes
 	const index = JSON.stringify({
-		files: { '/home/jens/Bilder/Kreuz.png': 'aa11-Kreuz.png', '/home/jens/Bilder/grund.png': 'bb22-grund.png', 'C:/Logos/ort.png': 'cc33-ort.png' },
+		files: { '/home/user/Bilder/Kreuz.png': 'aa11-Kreuz.png', '/home/user/Bilder/grund.png': 'bb22-grund.png', 'C:/Logos/ort.png': 'cc33-ort.png' },
 		themes: { 'Nur im Deck': { ...{ name: 'Nur im Deck', bg: '#334455', fg: '#ffffff' }, bgMode: 'solid' } },
 	})
 	const files = []
@@ -466,13 +466,13 @@ test('presentation: pictures from elsewhere and the user\'s themes (background, 
 	await desktopPush(request, { type: 'presAssets', key: 'presAssets:' + id, payload: { files, total: files.reduce((a, f) => a + f.s, 0) } })
 	// the user's own theme, synced as presTheme
 	await desktopPush(request, { type: 'presTheme', key: 'presTheme:Gemeinde Ost', payload: {
-		name: 'Gemeinde Ost', bg: '#fefefe', fg: '#111111', accent: '#aa0000', bgMode: 'image', bgImage: '/home/jens/Bilder/grund.png',
+		name: 'Gemeinde Ost', bg: '#fefefe', fg: '#111111', accent: '#aa0000', bgMode: 'image', bgImage: '/home/user/Bilder/grund.png',
 		logo: 'C:\\Logos\\ort.png', logoCorner: 'tr', logoHeight: 10, logoOpacity: 50,
 	} })
 	await desktopPush(request, { type: 'presentation', key: 'presentation:' + id, payload: {
 		uuid: id, title: 'E2E-Medien', kind: 'sermon', theme: 'Gemeinde Ost', created: 46315.3, modified: 46315.3,
 		deck: { uuid: id, title: 'E2E-Medien', kind: 'sermon', theme: 'Gemeinde Ost', slides: [
-			{ id: 'a', blocks: [{ kind: 'image', image: '/home/jens/Bilder/Kreuz.png', text: 'Das Kreuz' }] },
+			{ id: 'a', blocks: [{ kind: 'image', image: '/home/user/Bilder/Kreuz.png', text: 'Das Kreuz' }] },
 			{ id: 'b', theme: 'Nur im Deck', blocks: [{ kind: 'title', text: 'Dunkle Folie' }] },
 		] },
 	} })

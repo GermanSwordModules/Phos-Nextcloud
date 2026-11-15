@@ -5,3 +5,4 @@
 /composer.phar
 /.playwright-results/
 /build/
+__pycache__/

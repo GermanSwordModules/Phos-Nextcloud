@@ -11,7 +11,7 @@ Grenzen: kein Cursor (jeder Pull liest alle Snapshots), reine Wanduhr-Timestamps
 
 Ziel: Eine **Nextcloud-App „phos“** (Repo `../Phos-Nextcloud`, GermanSwordModules/Phos-Nextcloud, reine PHP-App, NC ≥ 30) als Sync-Server mit Änderungs-Journal, danach Teilen über Nextcloud-Nutzer/Gruppen/Teams, zuletzt ein basales Webfrontend. Clients: Phos Desktop (Free Pascal) und phos-mobile (Kotlin MP). **Die klassische AndBible-Synchronisierung bleibt als gleichberechtigte Option bestehen** (Abschnitt 5a), ebenso v1 (WebDAV-Ordner) für Nutzer ohne die App.
 
-Entscheidungen (mit Nutzer geklärt): reine PHP-App ohne Docker/ExApp; **SWORD-Module werden vollständig als Dateien** synchronisiert; Mindestversion NC 30 (Vue 3, @nextcloud/vue 9, Teams/Circles).
+Entscheidungen: reine PHP-App ohne Docker/ExApp; **SWORD-Module werden vollständig als Dateien** synchronisiert; Mindestversion NC 30 (Vue 3, @nextcloud/vue 9, Teams/Circles).
 
 ---
 
@@ -218,7 +218,7 @@ Start: **NcSync-Pull → AndBible-Pull → NcSync-Push**. Ende (`FormClose`): Nc
 
 ## 9. Phase 3 — Basales Webfrontend
 
-> Einstieg/Übergabe: `docs/phase3-kontext.md`.
+> Arbeitsumgebung und Fallstricke: `docs/entwicklung.md`.
 
 - Vue 3 + `@nextcloud/vue` unter `/apps/phos/`, Navigation links (Bibel, Lesezeichen, Notizen, Studienpads, Leseplan, Geteilt), Nextcloud-Design/Darkmode.
 - **Bibeltext ohne Server-Binärdateien**: PHP-SWORD-Leser in `lib/Service/Sword/` direkt auf den synchronisierten Moduldateien in `Phos/Module/` (über `IRootFolder`):

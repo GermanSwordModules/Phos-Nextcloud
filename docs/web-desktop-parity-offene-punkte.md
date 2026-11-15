@@ -1,9 +1,9 @@
-# Web ↔ Desktop look-alike/work-alike: Stand und offene Punkte
+# Web ↔ Desktop: Stand und offene Punkte
 
-Vollständiger Plan (Tier 1-4 + Chrome-Track, nach Aufwand/Effekt sortiert):
-`/home/jens/.claude/plans/please-make-a-plan-curious-meerkat.md` (lokal beim Benutzer).
+Was die Web-Oberfläche vom Desktop übernommen hat, was bewusst anders ist und was noch fehlt,
+nach Aufwand sortiert.
 
-## Erledigt (Tier 1-3 + Chrome-Track, uncommitted)
+## Erledigt (Tier 1-3 + Chrome-Track, App 0.4.4)
 
 - **Phase 0**: eine Anzeigeoptionen-Menü-Komponente (`src/components/BibleViewOptions.vue`),
   gespeist aus einem gemeinsamen `displayOptions`-Objekt (`src/services/phos.js`) — das
@@ -35,7 +35,7 @@ Verifiziert: `npm test` (24/24), `npm run build`, PHPUnit (93/93), `tests/web/en
 (3/3), Playwright-Smoke (29/29 inkl. 8 neue Szenarien für die obigen Punkte) — alles über
 `dev/compose.sh up|web` gegen eine echte Nextcloud-Instanz (podman `phos-nc-dev`).
 
-## Runde 2026-11-07 (Theme, Synopse, Wortstudie, Export) — erledigt, uncommitted
+## Runde 2026-11-07 (Theme, Synopse, Wortstudie, Export)
 
 - **Farbschema (alle Geräte)**: Ansicht-Menü → Hell/Dunkel/Sepia/Automatisch, gespeichert als
   `setting:Display.ThemeMode` — derselbe Schlüssel wie Desktop (`Cfg.ThemeMode`) und Phos Mobile.
@@ -84,6 +84,3 @@ komplett neu. **Empfehlung**: eigenes Folgeprojekt, nicht in einen Parity-Sprint
 Zwischenlösung, falls gewünscht: nur ein Gloss-Text unter jedem `.phos-w`-Wort (kein 4-Zeilen-Raster,
 kein Satzbau-Fenster) — mittlerer statt hoher Aufwand.
 
-## Quellen
-Explore-Agenten-Audits (Desktop-Feature-Inventar, Web-Ist-Stand) + direkte Code-Verifikation
-2026-11-03; Plandatei siehe oben.
